@@ -8,6 +8,32 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ShareDlls", "ShareDlls", "{
 		ShareDlls\DocumentFormat.OpenXml.dll = ShareDlls\DocumentFormat.OpenXml.dll
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UT", "UT\UT.csproj", "{82F5CA21-A763-422D-81EF-1A23843FC88C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TemplatesWords", "TemplatesWords", "{CE2213BB-A2C7-4E7C-9DB7-166218F28750}"
+	ProjectSection(SolutionItems) = preProject
+		TemplatesWords\BAGGAGE_REPAIR_PASSENGER_FORM_ENG_LOGO.docx = TemplatesWords\BAGGAGE_REPAIR_PASSENGER_FORM_ENG_LOGO.docx
+		TemplatesWords\BAGGAGE_REPAIR_PASSENGER_FORM_HEB_LOGO.docx = TemplatesWords\BAGGAGE_REPAIR_PASSENGER_FORM_HEB_LOGO.docx
+		TemplatesWords\BulkIncident_Compensation_Points.docx = TemplatesWords\BulkIncident_Compensation_Points.docx
+		TemplatesWords\LOST_FOUND_Damage_without_Liability_eng.docx = TemplatesWords\LOST_FOUND_Damage_without_Liability_eng.docx
+		TemplatesWords\LOST_FOUND_Damage_without_Liability_eng_logo.docx = TemplatesWords\LOST_FOUND_Damage_without_Liability_eng_logo.docx
+		TemplatesWords\LOST_FOUND_Damage_without_Liability_heb.docx = TemplatesWords\LOST_FOUND_Damage_without_Liability_heb.docx
+		TemplatesWords\LOST_FOUND_Damage_without_Liability_heb_logo.docx = TemplatesWords\LOST_FOUND_Damage_without_Liability_heb_logo.docx
+		TemplatesWords\LOST_FOUND_LOST_PROPERTY_Query_eng.docx = TemplatesWords\LOST_FOUND_LOST_PROPERTY_Query_eng.docx
+		TemplatesWords\LOST_FOUND_LOST_PROPERTY_Query_eng_logo.docx = TemplatesWords\LOST_FOUND_LOST_PROPERTY_Query_eng_logo.docx
+		TemplatesWords\LOST_FOUND_LOST_PROPERTY_Query_heb.docx = TemplatesWords\LOST_FOUND_LOST_PROPERTY_Query_heb.docx
+		TemplatesWords\LOST_FOUND_LOST_PROPERTY_Query_heb_logo.docx = TemplatesWords\LOST_FOUND_LOST_PROPERTY_Query_heb_logo.docx
+		TemplatesWords\request_to_down.docx = TemplatesWords\request_to_down.docx
+		TemplatesWords\מכתב ביניים פניות לקוחות אנגלית.docx = TemplatesWords\מכתב ביניים פניות לקוחות אנגלית.docx
+		TemplatesWords\מכתב ביניים פניות לקוחות עברית.docx = TemplatesWords\מכתב ביניים פניות לקוחות עברית.docx
+		TemplatesWords\תבנית בקשה להארכת מועד להגשת כתב הגנה - זכר.docx = TemplatesWords\תבנית בקשה להארכת מועד להגשת כתב הגנה - זכר.docx
+		TemplatesWords\תבנית בקשה להארכת מועד להגשת כתב הגנה - נקבה.docx = TemplatesWords\תבנית בקשה להארכת מועד להגשת כתב הגנה - נקבה.docx
+		TemplatesWords\תבנית בקשה להארכת מועד להגשת כתב הגנה - רבים.docx = TemplatesWords\תבנית בקשה להארכת מועד להגשת כתב הגנה - רבים.docx
+		TemplatesWords\תבנית כתב הגנה - זכר.docx = TemplatesWords\תבנית כתב הגנה - זכר.docx
+		TemplatesWords\תבנית כתב הגנה - נקבה.docx = TemplatesWords\תבנית כתב הגנה - נקבה.docx
+		TemplatesWords\תבנית כתב הגנה - רבים.docx = TemplatesWords\תבנית כתב הגנה - רבים.docx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,6 +44,10 @@ Global
 		{D0FC1F29-C010-456E-B11D-F7C2A3B05FCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0FC1F29-C010-456E-B11D-F7C2A3B05FCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0FC1F29-C010-456E-B11D-F7C2A3B05FCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82F5CA21-A763-422D-81EF-1A23843FC88C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82F5CA21-A763-422D-81EF-1A23843FC88C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82F5CA21-A763-422D-81EF-1A23843FC88C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82F5CA21-A763-422D-81EF-1A23843FC88C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
