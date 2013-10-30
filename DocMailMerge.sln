@@ -1,7 +1,24 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MechanismDocMailMerge", "MechanismDocMailMerge\MechanismDocMailMerge.csproj", "{D0FC1F29-C010-456E-B11D-F7C2A3B05FCB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ShareDlls", "ShareDlls", "{B6B3BE8A-F2F7-4F4F-9E3D-58FCF1323D15}"
+	ProjectSection(SolutionItems) = preProject
+		ShareDlls\DocumentFormat.OpenXml.dll = ShareDlls\DocumentFormat.OpenXml.dll
+	EndProjectSection
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0FC1F29-C010-456E-B11D-F7C2A3B05FCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0FC1F29-C010-456E-B11D-F7C2A3B05FCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0FC1F29-C010-456E-B11D-F7C2A3B05FCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0FC1F29-C010-456E-B11D-F7C2A3B05FCB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
