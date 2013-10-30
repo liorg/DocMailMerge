@@ -88,7 +88,7 @@ namespace Guardian.Documents.MailMerge
                                     c => c.Parent as XOPEN.Wordprocessing.Run);
 
                             // Process complex MergeFields 
-                            foreach (XOPEN.Wordprocessing.Run run in list)
+                            foreach (var run in list)
                             {
                                 var current = run;
                                 string column = "";
