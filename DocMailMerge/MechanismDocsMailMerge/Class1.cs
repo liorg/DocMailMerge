@@ -7,6 +7,6 @@ using System.Threading.Tasks;
 namespace MechanismDocsMailMerge
 {
     public class Class1
-    { 
+    {
     }
 }
