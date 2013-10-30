@@ -39,7 +39,7 @@ namespace Guardian.Documents.MailMerge
 
         }
 
-        protected virtual byte[] Modified(byte[] buffer, string query)
+        protected  byte[] Modified(byte[] buffer, string query)
         {
             using (var ms = new MemoryStream())
             {
@@ -57,6 +57,120 @@ namespace Guardian.Documents.MailMerge
                 }
                 return ms.ToArray();
             }
+        }
+
+        public  byte[] ReplaceMergeFieldValue(ISourceDoc sourceDoc, string query)
+        {
+            var buffer = sourceDoc.GetBuffer();
+
+            var dt = new DataTable();
+            try
+            {
+                using (var adapter = new OleDbDataAdapter(query, ConnectionString))
+                {
+                    adapter.Fill(dt);
+                }
+
+                if (dt.Rows.Count > 0)
+                {
+                    DataRow dataRow = dt.Rows[0];
+                    using (var ms = new MemoryStream())
+                    {
+                        ms.Write(buffer, 0, buffer.Length);
+                        using (var doc = XOPEN.Packaging.WordprocessingDocument.Open(ms, true))
+                        {
+                            doc.MainDocumentPart.DocumentSettingsPart.Settings.RemoveAllChildren
+                                <XOPEN.Wordprocessing.MailMerge>();
+                           var body = doc.MainDocumentPart.Document.Body;
+
+                            var list =
+                                body.Descendants<XOPEN.Wordprocessing.FieldChar>().Where(c => c.FieldCharType == XOPEN.Wordprocessing.FieldCharValues.Begin).Select(
+                                    c => c.Parent as XOPEN.Wordprocessing.Run);
+
+                            // Process complex MergeFields 
+                            foreach (XOPEN.Wordprocessing.Run run in list)
+                            {
+                                var current = run;
+                                string column = "";
+                                string format = "";
+
+                                while (!(current.GetFirstChild<XOPEN.Wordprocessing.FieldChar>() != null &&
+                                    current.GetFirstChild<XOPEN.Wordprocessing.FieldChar>().FieldCharType == XOPEN.Wordprocessing.FieldCharValues.End))
+                                {
+                                    if (current.GetFirstChild<XOPEN.Wordprocessing.FieldCode>() != null)
+                                    {
+                                        string[] columnParts = current.GetFirstChild<XOPEN.Wordprocessing.FieldCode>()
+                                            .Text
+                                            .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                                        if (columnParts.Length > 1)
+                                        {
+                                            if (columnParts[0] != "MERGEFIELD")
+                                                break;
+                                            column = columnParts[1];
+                                            if (columnParts.Length > 3)
+                                                format = columnParts[3].Replace('"', ' ');
+                                        }
+
+                                    }
+                                    var text = current.GetFirstChild<XOPEN.Wordprocessing.Text>();
+
+                                    if (dt.Columns.Contains(column) && text != null)
+                                    {
+                                        if (dataRow[column] is DateTime)
+                                            text.Text = ((DateTime)dataRow[column]).ToString(format);
+                                        else
+                                            text.Text = dataRow[column].ToString();
+                                    }
+                                    current = current.NextSibling<XOPEN.Wordprocessing.Run>();
+                                }
+                            }
+
+                            // Process Simple MergeField
+                            foreach (var field in body.Descendants<XOPEN.Wordprocessing.SimpleField>())
+                            {
+                                string column = "";
+                                string format = "";
+                                if (field.Instruction.HasValue)
+                                {
+                                    string[] columnParts = field.Instruction.Value
+                                           .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (columnParts.Length > 1)
+                                    {
+                                        column = columnParts[1];
+                                        if (columnParts.Length > 3)
+                                            format = columnParts[3].Replace('"', ' ');
+                                    }
+                                    var text = field.Descendants<XOPEN.Wordprocessing.Text>().FirstOrDefault();
+                                    if (dt.Columns.Contains(column) && text != null)
+                                    {
+                                        if (dataRow[column] is DateTime)
+                                            text.Text = ((DateTime)dataRow[column]).ToString(format);
+                                        else
+                                            text.Text = dataRow[column].ToString();
+                                    }
+                                }
+                            }
+
+                        }
+                        return ms.ToArray();
+                    }
+                }
+                else
+                {
+                    Log(String.Format("No Data returned.\tQuery:\r\n{0}", query), EventLogEntryType.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(ex.Message, EventLogEntryType.Error);
+                Log(ex.ToString(), EventLogEntryType.Information);
+                Log(ex.StackTrace, EventLogEntryType.Information);
+            }
+
+
+
+            return null;
         }
 
         void Log(string s, EventLogEntryType t)
