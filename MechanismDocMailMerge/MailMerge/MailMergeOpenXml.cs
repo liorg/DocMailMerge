@@ -30,28 +30,52 @@ namespace Guardian.Documents.MailMerge
             ConnectionString = connection; 
         }
 
-        public string Merge(string query,ISourceDoc sourceDoc,ITargetDoc targetDoc)
+        public string Merge(string query, ISourceDoc sourceDoc, ITargetDoc targetDoc, string udlPath=@"c:\\temp\r.udl")
         {
             var buffer = sourceDoc.GetBuffer();
-            var dataAfterModified = Modified(buffer, query);
+            var dataAfterModified = Modified(buffer, query, udlPath);
             string targetPath = targetDoc.Save(dataAfterModified);
             return targetPath;
 
         }
 
-        protected  byte[] Modified(byte[] buffer, string query)
+        protected byte[] Modified(byte[] buffer, string query, string udlPath)
         {
             using (var ms = new MemoryStream())
             {
+                var newUri = new Uri(udlPath);//   (@"\\Crm11mantad\c$\inetpub\wwwroot\WEBMentaService\Doctemplates\r.udl");
                 ms.Write(buffer, 0, buffer.Length);
                 using (var doc = XOPEN.Packaging.WordprocessingDocument.Open(ms, true))
                 {
                     int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
                     if (mailmergecount != 1)
                         throw new ArgumentException("mailmergecount is not 1");
+                    var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
 
-                    var mymerge = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
+                    var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
+                    var myDataSourceReference = mymerge.DataSourceReference;
+                    if (myDataSourceReference != null)
+                    {
+                        var myOldRelationship = settingPart.GetExternalRelationship(myDataSourceReference.Id);
+                        if (myOldRelationship != null)
+                        {
+                            settingPart.DeleteExternalRelationship(myOldRelationship);
+                            settingPart.AddExternalRelationship(myOldRelationship.RelationshipType, newUri, myDataSourceReference.Id);
+                        }
+                    }
+                    if (mymerge.DataSourceObject != null && mymerge.DataSourceObject.SourceReference != null)
+                    {
+                        var myOldRelationship2 = settingPart.GetExternalRelationship(mymerge.DataSourceObject.SourceReference.Id);
+                        if (myOldRelationship2 != null)
+                        {
+                            settingPart.DeleteExternalRelationship(myOldRelationship2);
+                            settingPart.AddExternalRelationship(myOldRelationship2.RelationshipType, newUri, mymerge.DataSourceObject.SourceReference.Id);
 
+                        }
+                        if (mymerge.DataSourceObject.UdlConnectionString != null)
+                            mymerge.DataSourceObject.UdlConnectionString.Val = ConnectionString;
+                    }
+                   
                     mymerge.ConnectString.Val = ConnectionString;
                     mymerge.Query.Val = query;
                 }
