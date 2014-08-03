@@ -48,7 +48,7 @@ namespace Guardian.Documents.MailMerge
             DocPropertiey targetPath = targetDoc.Save(dataAfterChange);
             return targetPath;
         }
-
+        //http://www.legalcube.de/post/Word-OpenXML-Create-change-or-delete-watermarks.aspx
         bool FindRemoveWatermark(Run runWatermark)
         {
             bool success = false;
