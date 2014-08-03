@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Services.Protocols;
 using Guardian.Documents.MailMerge.Contract;
+using MechanismDocMailMerge.MailMerge;
 
 namespace UT.Implementation
 {
@@ -52,7 +53,7 @@ namespace UT.Implementation
                 }
                 //_log(message, LogType.Error);
                 return new Tuple<bool, string>(false, String.Empty);
-            }
+            } 
         }
 
         private NetworkCredential Credentials
@@ -77,11 +78,13 @@ namespace UT.Implementation
                 return _credentials;
             }
         }
-    
-        public string Save(byte[] data)
+
+        public DocPropertiey Save(byte[] data)
         {
-            var s = Upload(data);
-            return s.Item2;
+            DocPropertiey d = new DocPropertiey();
+            var s= Upload(data);
+            d.Drl= s.Item2;
+            return d;
         }
     }
 

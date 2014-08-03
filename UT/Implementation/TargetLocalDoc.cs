@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Guardian.Documents.MailMerge.Contract;
+using MechanismDocMailMerge.MailMerge;
 
 namespace Guardian.MailMerge.Implementation
 {
@@ -15,17 +16,17 @@ namespace Guardian.MailMerge.Implementation
         {
             _pathTarget = pathTarget;
         }
-        public string Save(byte[] data)
+        public DocPropertiey Save(byte[] data)
         {
             using (FileStream stream = new FileStream(_pathTarget, FileMode.OpenOrCreate))
             {
                 using (BinaryWriter writer = new BinaryWriter(stream))
                 {
                     writer.Write(data);
-
+                     
                 }
-            }
-            return _pathTarget;
+            } 
+            return new DocPropertiey { Drl = _pathTarget, ObjId = "" };
         }
     }
 

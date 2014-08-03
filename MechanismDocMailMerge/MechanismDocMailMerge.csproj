@@ -49,6 +49,7 @@
   <ItemGroup>
     <Compile Include="MailMerge\Contract\ISourceDoc.cs" />
     <Compile Include="MailMerge\Contract\ITargetDoc.cs" />
+    <Compile Include="MailMerge\DocPropertiey.cs" />
     <Compile Include="MailMerge\MailMergeOpenXml.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

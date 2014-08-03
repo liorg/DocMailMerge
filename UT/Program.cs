@@ -27,7 +27,7 @@ namespace UT
             var source = new SourceWebDoc(pathSource);
             var target = new TargetLocalDoc(pathTarget);
 
-            var result=mailMergeOpenXml.Merge(queryToChange, source, target);
+            var result=mailMergeOpenXml.Merge(queryToChange, source, target,@"c:\\temp\r.udl",@"c:\\temp\TemplateCrmMenta.dotm","someserver:1000");
 
         }
     }

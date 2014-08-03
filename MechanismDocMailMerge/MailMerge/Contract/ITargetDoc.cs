@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MechanismDocMailMerge.MailMerge;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace Guardian.Documents.MailMerge.Contract
 {
     public interface ITargetDoc
     {
-        string Save(byte[] data);
+        DocPropertiey Save(byte[] data);
        
     }
 }

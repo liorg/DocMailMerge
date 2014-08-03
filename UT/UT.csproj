@@ -52,6 +52,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="docs\freeze12.docm" />
+    <None Include="docs\r.udl" />
+    <None Include="docs\TemplateCrmMenta.dotm" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MechanismDocMailMerge\MechanismDocMailMerge.csproj">
