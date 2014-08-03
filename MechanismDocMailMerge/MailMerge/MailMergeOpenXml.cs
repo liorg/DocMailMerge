@@ -32,7 +32,18 @@ namespace Guardian.Documents.MailMerge
             _log = log;
             ConnectionString = connection;
         }
-
+        /// <summary>
+        /// 1. merge will change data source and query for mail merge doument
+        /// 2. add custom proprerty for server (when macro call to webservice )
+        /// 3. set macro path where the document template macro  (.dotm) will join with document
+        /// </summary>
+        /// <param name="query">query to change</param>
+        /// <param name="sourceDoc"></param>
+        /// <param name="targetDoc"></param>
+        /// <param name="udlPath">udlPath to change</param>
+        /// <param name="macroTemplatePath"> macro path</param>
+        /// <param name="serverAndPort">change server to current environment </param>
+        /// <returns></returns>
         public DocPropertiey Merge(string query, ISourceDoc sourceDoc, ITargetDoc targetDoc, string udlPath, string macroTemplatePath = "", string serverAndPort = "")
         {
             var buffer = sourceDoc.GetBuffer();
