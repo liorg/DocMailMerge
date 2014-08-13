@@ -12,9 +12,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UT", "UT\UT.csproj", "{82F5
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TemplatesWords", "TemplatesWords", "{CE2213BB-A2C7-4E7C-9DB7-166218F28750}"
 	ProjectSection(SolutionItems) = preProject
+		TemplatesWords\CrmSecureRibbon.dotm = TemplatesWords\CrmSecureRibbon.dotm
 		TemplatesWords\name.docx = TemplatesWords\name.docx
 		TemplatesWords\name.xml = TemplatesWords\name.xml
 		TemplatesWords\output.docx = TemplatesWords\output.docx
+		TemplatesWords\r.udl = TemplatesWords\r.udl
+		TemplatesWords\testButtons.docm = TemplatesWords\testButtons.docm
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2.5", "2.5", "{02DFE1F0-B27F-4F1B-A3E5-E0ED7D1B49E6}"
+	ProjectSection(SolutionItems) = preProject
+		ShareDlls\2.5\DocumentFormat.OpenXml.dll = ShareDlls\2.5\DocumentFormat.OpenXml.dll
+		ShareDlls\2.5\DocumentFormat.OpenXml.xml = ShareDlls\2.5\DocumentFormat.OpenXml.xml
 	EndProjectSection
 EndProject
 Global
@@ -34,5 +43,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{02DFE1F0-B27F-4F1B-A3E5-E0ED7D1B49E6} = {B6B3BE8A-F2F7-4F4F-9E3D-58FCF1323D15}
 	EndGlobalSection
 EndGlobal

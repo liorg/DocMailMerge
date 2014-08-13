@@ -8,7 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Services.Protocols;
 using Guardian.Documents.MailMerge.Contract;
-using MechanismDocMailMerge.MailMerge;
+using Guardian.Documents.MailMerge;
+
 
 namespace UT.Implementation
 {

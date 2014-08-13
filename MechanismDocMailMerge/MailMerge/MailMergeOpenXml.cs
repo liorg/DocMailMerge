@@ -13,14 +13,16 @@ using System.Net;
 using System.Configuration;
 using System.Diagnostics;
 using Guardian.Documents.MailMerge.Contract;
+
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml;
 using System.Globalization;
-using MechanismDocMailMerge.MailMerge;
-
 namespace Guardian.Documents.MailMerge
 {
+    /// <summary>
+    /// Manipulate Open XML SDK 2.5 
+    /// </summary>
     public class MailMergeOpenXml
     {
         public string ConnectionString { get; protected set; }
@@ -32,18 +34,8 @@ namespace Guardian.Documents.MailMerge
             _log = log;
             ConnectionString = connection;
         }
-        /// <summary>
-        /// 1. merge will change data source and query for mail merge doument
-        /// 2. add custom proprerty for server (when macro call to webservice )
-        /// 3. set macro path where the document template macro  (.dotm) will join with document
-        /// </summary>
-        /// <param name="query">query to change</param>
-        /// <param name="sourceDoc"></param>
-        /// <param name="targetDoc"></param>
-        /// <param name="udlPath">udlPath to change</param>
-        /// <param name="macroTemplatePath"> macro path</param>
-        /// <param name="serverAndPort">change server to current environment </param>
-        /// <returns></returns>
+
+       
         public DocPropertiey Merge(string query, ISourceDoc sourceDoc, ITargetDoc targetDoc, string udlPath, string macroTemplatePath = "", string serverAndPort = "")
         {
             var buffer = sourceDoc.GetBuffer();
@@ -55,12 +47,13 @@ namespace Guardian.Documents.MailMerge
         public DocPropertiey FillData(ISourceDoc sourceDoc, ITargetDoc targetDoc)
         {
             var dataAfterModified = sourceDoc.GetBuffer();
-            var dataAfterChange = FillDataToDoc(dataAfterModified, true);
+            var dataAfterChange = FillDataToDocCP(dataAfterModified, true);
             DocPropertiey targetPath = targetDoc.Save(dataAfterChange);
             return targetPath;
         }
+
         //http://www.legalcube.de/post/Word-OpenXML-Create-change-or-delete-watermarks.aspx
-        bool FindRemoveWatermark(Run runWatermark)
+        bool FindAndRemoveWatermark(Run runWatermark)
         {
             bool success = false;
             //DocumentFormat.OpenXml.Vml.TextPath
@@ -88,6 +81,120 @@ namespace Guardian.Documents.MailMerge
             return success;
         }
 
+        byte[] FillDataToDocCP(byte[] buffer, bool isRemoveWatermark)
+        {
+            try
+            {
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    ms.Write(buffer, 0, buffer.Length);
+                    using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
+                    {
+
+                        var query = GetQueryFromDoc(doc);
+                        var connStr = GetConnStrFromDoc(doc);
+                        Dictionary<string, string> values = GetFieldsValues(query, connStr);
+                        if (values.Count > 0)
+                        {
+
+                            // Remove datasource from settings part and save this part in the memory stream
+                            RemoveMailMergeDataSource(doc);
+
+                            if (isRemoveWatermark)
+                                RemoveWatermark(doc);
+
+                            UtilityFiller.GetWordReportPart(ms, doc, values);
+                        }
+                        doc.MainDocumentPart.Document.Save();
+                        return ms.ToArray();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(ex.Message, EventLogEntryType.Error);
+                Log(ex.ToString(), EventLogEntryType.Information);
+                Log(ex.StackTrace, EventLogEntryType.Error);
+                throw ex;
+            }
+
+        }
+
+        /// <summary>
+        /// Remove MailMerge DataSource (before fill mailmege fields)
+        /// </summary>
+        /// <param name="doc"></param>
+        void RemoveMailMergeDataSource(WordprocessingDocument doc)
+        {
+            doc.MainDocumentPart.DocumentSettingsPart.Settings.RemoveAllChildren
+                                   <DocumentFormat.OpenXml.Wordprocessing.MailMerge>();
+            doc.MainDocumentPart.DocumentSettingsPart.Settings.Save();
+        }
+
+        /// <summary>
+        /// Remove Watermark
+        /// </summary>
+        /// <param name="doc"></param>
+        void RemoveWatermark(WordprocessingDocument doc)
+        {
+
+            foreach (var header in doc.MainDocumentPart.HeaderParts)
+            {
+                //Remove
+                if (header.Header.Descendants<Paragraph>() != null)
+                {
+                    var isFound = false;
+                    foreach (var para in header.Header.Descendants<Paragraph>())
+                    {
+                        foreach (Run r in para.Descendants<Run>())
+                        {
+                            isFound = FindAndRemoveWatermark(r);
+                            if (isFound)
+                                break;
+                        }
+                        if (isFound)
+                            header.Header.Save(header);
+                    }
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Fill fields names and is values
+        /// </summary>
+        /// <param name="query"></param>
+        /// <param name="connStr"></param>
+        /// <returns></returns>
+        Dictionary<string, string> GetFieldsValues(string query, string connStr)
+        {
+            DataRow dataRow = null;
+            Dictionary<string, string> values = new Dictionary<string, string>();
+            DataTable dt = new DataTable();
+
+            using (System.Data.SqlClient.SqlDataAdapter adapter = new System.Data.SqlClient.SqlDataAdapter(query, connStr))
+            {
+                adapter.Fill(dt);
+            }
+
+            if (dt.Rows.Count > 0)
+            {
+                dataRow = dt.Rows[0];
+            }
+            if (dataRow == null)
+                return values;
+            // values.Add("businessunit", "שלום רב  manta בדיקה");
+            foreach (DataColumn item in dt.Columns)
+            {
+                if (values.ContainsKey(item.ColumnName))
+                    continue;
+                values.Add(item.ColumnName, dataRow[item].ToString());
+
+            }
+            return values;
+        }
+
+        [Obsolete("roman  will be removed", false)]
         byte[] FillDataToDoc(byte[] buffer, bool isRemoveWatermark)
         {
 
@@ -100,8 +207,9 @@ namespace Guardian.Documents.MailMerge
                     using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
                     {
 
-                        var query = GetQuery(doc);
-                        using (DbDataAdapter adapter = new OleDbDataAdapter(query, ConnectionString))
+                        var query = GetQueryFromDoc(doc);
+                        var connStr = GetConnStrFromDoc(doc);
+                        using (System.Data.SqlClient.SqlDataAdapter adapter = new System.Data.SqlClient.SqlDataAdapter(query, connStr))
                         {
                             adapter.Fill(dt);
                         }
@@ -127,7 +235,7 @@ namespace Guardian.Documents.MailMerge
                                         {
                                             foreach (Run r in para.Descendants<Run>())
                                             {
-                                                isFound = FindRemoveWatermark(r);
+                                                isFound = FindAndRemoveWatermark(r);
                                                 if (isFound)
                                                     break;
                                             }
@@ -219,8 +327,9 @@ namespace Guardian.Documents.MailMerge
                 Log(ex.Message, EventLogEntryType.Error);
                 Log(ex.ToString(), EventLogEntryType.Information);
                 Log(ex.StackTrace, EventLogEntryType.Error);
+                throw ex;
             }
-            return null;
+
         }
 
         string GenerateSQL(string query, Guid activeDoc)
@@ -246,7 +355,6 @@ namespace Guardian.Documents.MailMerge
             }
         }
 
-        //set macro
         void SetMacroPath(WordprocessingDocument doc, DocumentSettingsPart settingPart, string macroTemplatePath)
         {
             if (!String.IsNullOrEmpty(macroTemplatePath))
@@ -357,7 +465,7 @@ namespace Guardian.Documents.MailMerge
             mymerge.Query.Val = query;
         }
 
-        string GetQuery(WordprocessingDocument doc)
+        string GetQueryFromDoc(WordprocessingDocument doc)
         {
             int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
             if (mailmergecount != 1)
@@ -369,6 +477,20 @@ namespace Guardian.Documents.MailMerge
             var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
 
             return mymerge.Query.Val;
+        }
+
+        string GetConnStrFromDoc(WordprocessingDocument doc)
+        {
+            int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
+            if (mailmergecount != 1)
+                throw new ArgumentException("mailmergecount is not 1");
+            // Get the Document Settings Part
+
+
+            var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
+            var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
+
+            return mymerge.ConnectString.Val;
         }
 
         void Log(string s, EventLogEntryType t)

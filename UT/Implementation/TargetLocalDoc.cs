@@ -5,7 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Guardian.Documents.MailMerge.Contract;
-using MechanismDocMailMerge.MailMerge;
+using Guardian.Documents.MailMerge;
+
 
 namespace Guardian.MailMerge.Implementation
 {
