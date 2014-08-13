@@ -26,6 +26,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "2.5", "2.5", "{02DFE1F0-B27
 		ShareDlls\2.5\DocumentFormat.OpenXml.xml = ShareDlls\2.5\DocumentFormat.OpenXml.xml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WcfService", "server\WcfService\WcfService.csproj", "{A2DCB511-1CA1-425E-A11C-AB9DA3F55B95}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WcfServiceMailMergeLibrary", "server\WcfServiceMailMergeLibrary\WcfServiceMailMergeLibrary.csproj", "{15B3E0D2-6217-493A-A690-158C497F5318}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,6 +44,14 @@ Global
 		{82F5CA21-A763-422D-81EF-1A23843FC88C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{82F5CA21-A763-422D-81EF-1A23843FC88C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{82F5CA21-A763-422D-81EF-1A23843FC88C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2DCB511-1CA1-425E-A11C-AB9DA3F55B95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2DCB511-1CA1-425E-A11C-AB9DA3F55B95}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2DCB511-1CA1-425E-A11C-AB9DA3F55B95}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2DCB511-1CA1-425E-A11C-AB9DA3F55B95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15B3E0D2-6217-493A-A690-158C497F5318}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15B3E0D2-6217-493A-A690-158C497F5318}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15B3E0D2-6217-493A-A690-158C497F5318}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15B3E0D2-6217-493A-A690-158C497F5318}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -35,7 +35,20 @@ namespace Guardian.Documents.MailMerge
             ConnectionString = connection;
         }
 
-       
+       /// <summary>
+       /// Change 
+       /// 1. Data SOurce
+       /// 2. SQL Query
+       /// 3. macro dotm template 
+       /// 4. custom property for server name and port which connect from macro client side to server api side
+       /// </summary>
+       /// <param name="query"></param>
+       /// <param name="sourceDoc"></param>
+       /// <param name="targetDoc"></param>
+       /// <param name="udlPath"></param>
+       /// <param name="macroTemplatePath"></param>
+       /// <param name="serverAndPort"></param>
+       /// <returns></returns>
         public DocPropertiey Merge(string query, ISourceDoc sourceDoc, ITargetDoc targetDoc, string udlPath, string macroTemplatePath = "", string serverAndPort = "")
         {
             var buffer = sourceDoc.GetBuffer();
