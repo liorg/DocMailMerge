@@ -41,13 +41,6 @@ namespace Guardian.Documents.MailMerge
        /// 3. Replace path of macro dotm template 
        /// 4. Add custom property for server name and port which connect from macro client side to server api side
        /// </summary>
-       /// <param name="query"></param>
-       /// <param name="sourceDoc"></param>
-       /// <param name="targetDoc"></param>
-       /// <param name="udlPath"></param>
-       /// <param name="macroTemplatePath"></param>
-       /// <param name="serverAndPort"></param>
-       /// <returns></returns>
         public DocPropertiey Merge(string query, ISourceDoc sourceDoc, ITargetDoc targetDoc, string udlPath, string macroTemplatePath = "", string serverAndPort = "")
         {
             var buffer = sourceDoc.GetBuffer();
@@ -69,6 +62,43 @@ namespace Guardian.Documents.MailMerge
             DocPropertiey targetPath = targetDoc.Save(dataAfterChange);
             return targetPath;
         }
+
+        byte[] FillDataToDocCP(byte[] buffer, bool isRemoveWatermark)
+        {
+            try
+            {
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    ms.Write(buffer, 0, buffer.Length);
+                    using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
+                    {
+                        var query = GetQueryFromDoc(doc);
+                        var connStr = GetConnStrFromDoc(doc);
+                        Dictionary<string, string> values = GetFieldsValues(query, connStr);
+                        if (values.Count > 0)
+                        {
+                            // Remove datasource from settings part and save this part in the memory stream
+                            RemoveMailMergeDataSource(doc);
+
+                            if (isRemoveWatermark)
+                                RemoveWatermark(doc);
+
+                            UtilityFiller.GetWordReportPart(ms, doc, values);
+                        }
+                        doc.MainDocumentPart.Document.Save();
+                        return ms.ToArray();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(ex.Message, EventLogEntryType.Error);
+                Log(ex.ToString(), EventLogEntryType.Information);
+                Log(ex.StackTrace, EventLogEntryType.Error);
+                throw ex;
+            }
+        }
+
 
         //http://www.legalcube.de/post/Word-OpenXML-Create-change-or-delete-watermarks.aspx
         bool FindAndRemoveWatermark(Run runWatermark)
@@ -99,53 +129,13 @@ namespace Guardian.Documents.MailMerge
             return success;
         }
 
-        byte[] FillDataToDocCP(byte[] buffer, bool isRemoveWatermark)
-        {
-            try
-            {
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    ms.Write(buffer, 0, buffer.Length);
-                    using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
-                    {
-
-                        var query = GetQueryFromDoc(doc);
-                        var connStr = GetConnStrFromDoc(doc);
-                        Dictionary<string, string> values = GetFieldsValues(query, connStr);
-                        if (values.Count > 0)
-                        {
-
-                            // Remove datasource from settings part and save this part in the memory stream
-                            RemoveMailMergeDataSource(doc);
-
-                            if (isRemoveWatermark)
-                                RemoveWatermark(doc);
-
-                            UtilityFiller.GetWordReportPart(ms, doc, values);
-                        }
-                        doc.MainDocumentPart.Document.Save();
-                        return ms.ToArray();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log(ex.Message, EventLogEntryType.Error);
-                Log(ex.ToString(), EventLogEntryType.Information);
-                Log(ex.StackTrace, EventLogEntryType.Error);
-                throw ex;
-            }
-
-        }
-
         /// <summary>
         /// Remove MailMerge DataSource (before fill mailmege fields)
         /// </summary>
         /// <param name="doc"></param>
         void RemoveMailMergeDataSource(WordprocessingDocument doc)
         {
-            doc.MainDocumentPart.DocumentSettingsPart.Settings.RemoveAllChildren
-                                   <DocumentFormat.OpenXml.Wordprocessing.MailMerge>();
+            doc.MainDocumentPart.DocumentSettingsPart.Settings.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.MailMerge>();
             doc.MainDocumentPart.DocumentSettingsPart.Settings.Save();
         }
 
@@ -155,7 +145,6 @@ namespace Guardian.Documents.MailMerge
         /// <param name="doc"></param>
         void RemoveWatermark(WordprocessingDocument doc)
         {
-
             foreach (var header in doc.MainDocumentPart.HeaderParts)
             {
                 //Remove
@@ -175,7 +164,6 @@ namespace Guardian.Documents.MailMerge
                     }
                 }
             }
-
         }
 
         /// <summary>
@@ -212,7 +200,194 @@ namespace Guardian.Documents.MailMerge
             return values;
         }
 
-        [Obsolete("roman  will be removed", false)]
+        string GenerateSQL(string query, Guid activeDoc)
+        {
+            return String.Format(query, activeDoc);
+        }
+
+        protected byte[] Modified(byte[] buffer, string query, string udlPath, string macroTemplatePath, string serverAndPort)
+        {
+            using (var ms = new MemoryStream())
+            {
+                //   (@"\\Crm11mantad\c$\inetpub\wwwroot\WEBMentaService\Doctemplates\r.udl");
+                ms.Write(buffer, 0, buffer.Length);
+                using (var doc = XOPEN.Packaging.WordprocessingDocument.Open(ms, true))
+                {
+                    var propertyName = "server";
+                    var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
+                    SetMailMergeSetting(doc, settingPart, udlPath, query, ConnectionString);
+                    SetCustomProperty(doc, propertyName, serverAndPort);
+                    SetMacroPath(doc, settingPart, macroTemplatePath);
+                }
+                return ms.ToArray();
+            }
+        }
+
+        void SetMacroPath(WordprocessingDocument doc, DocumentSettingsPart settingPart, string macroTemplatePath)
+        {
+            if (!String.IsNullOrEmpty(macroTemplatePath))
+            {
+                var hasMacros = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.AttachedTemplate>().Count();
+
+                var newUriMacr = new Uri(macroTemplatePath);
+                if (hasMacros > 0)
+                {
+                    AttachedTemplate attachTemplate = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.AttachedTemplate>().First();
+
+                    var attachTemplateRelationship = settingPart.GetExternalRelationship(attachTemplate.Id);
+
+                    // attachTemplateRelationship.Uri=  new Uri(macroTemplatePath, UriKind.Absolute);
+
+                    if (attachTemplateRelationship != null)
+                    {
+                        settingPart.DeleteExternalRelationship(attachTemplateRelationship);
+                        settingPart.AddExternalRelationship(attachTemplateRelationship.RelationshipType, newUriMacr, attachTemplate.Id);
+                    }
+                }
+            }
+        }
+
+        void SetCustomProperty(WordprocessingDocument doc, string propertyName, string propertyValue)
+        {
+            var newProp = new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty();
+            newProp.VTLPWSTR = new DocumentFormat.OpenXml.VariantTypes.VTLPWSTR(propertyValue);
+            newProp.FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}";
+            newProp.Name = propertyName;
+
+            var customProps = doc.CustomFilePropertiesPart;
+            if (customProps == null)
+            {
+                // No custom properties? Add the part, and the
+                // collection of properties now.
+                customProps = doc.AddCustomFilePropertiesPart();
+                customProps.Properties =
+                    new DocumentFormat.OpenXml.CustomProperties.Properties();
+            }
+
+            var props = customProps.Properties;
+            if (props != null)
+            {
+                // This will trigger an exception if the property's Name 
+                // property is null, but if that happens, the property is damaged, 
+                // and probably should raise an exception.
+                var prop =
+                    props.Where(
+                    p => ((DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty)p).Name.Value
+                        == propertyName).FirstOrDefault();
+
+                // Does the property exist? If so, get the return value, 
+                // and then delete the property.
+                if (prop != null)
+                {
+                    Debug.WriteLine(prop.InnerText);
+                    prop.Remove();
+                }
+
+                // Append the new property, and 
+                // fix up all the property ID values. 
+                // The PropertyId value must start at 2.
+                props.AppendChild(newProp);
+
+                int pid = 2;
+                foreach (DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty item in props)
+                    item.PropertyId = pid++;
+            }
+
+        }
+
+        /// <summary>
+        /// Change Data Source and sql query of current mail merge doc
+        /// </summary>
+        void SetMailMergeSetting(WordprocessingDocument doc, DocumentSettingsPart settingPart, string udlPath, string query, string connectionString)
+        {
+            int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
+            if (mailmergecount != 1)
+                throw new ArgumentException("mailmergecount is not 1");
+            // Get the Document Settings Part
+            var newUri = new Uri(udlPath);
+
+            var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
+            var myDataSourceReference = mymerge.DataSourceReference;
+            if (myDataSourceReference != null)
+            {
+                var myOldRelationship = settingPart.GetExternalRelationship(myDataSourceReference.Id);
+                if (myOldRelationship != null)
+                {
+                    settingPart.DeleteExternalRelationship(myOldRelationship);
+                    settingPart.AddExternalRelationship(myOldRelationship.RelationshipType, newUri, myDataSourceReference.Id);
+                }
+            }
+            if (mymerge.DataSourceObject != null && mymerge.DataSourceObject.SourceReference != null)
+            {
+
+                var myOldRelationship2 = settingPart.GetExternalRelationship(mymerge.DataSourceObject.SourceReference.Id);
+                if (myOldRelationship2 != null)
+                {
+                    settingPart.DeleteExternalRelationship(myOldRelationship2);
+                    settingPart.AddExternalRelationship(myOldRelationship2.RelationshipType, newUri, mymerge.DataSourceObject.SourceReference.Id);
+
+                }
+                if (mymerge.DataSourceObject.UdlConnectionString != null)
+                    mymerge.DataSourceObject.UdlConnectionString.Val = connectionString;
+            }
+            mymerge.ConnectString.Val = connectionString;
+            mymerge.Query.Val = query;
+        }
+
+        /// <summary>
+        /// Get Query of mail merge doc
+        /// </summary>
+        /// <param name="doc"></param>
+        /// <returns>current query</returns>
+        string GetQueryFromDoc(WordprocessingDocument doc)
+        {
+            int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
+            if (mailmergecount != 1)
+                throw new ArgumentException("mailmergecount is not 1");
+            // Get the Document Settings Part
+
+
+            var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
+            var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
+
+            return mymerge.Query.Val;
+        }
+
+        /// <summary>
+        /// Get Connection string of mail merge doc
+        /// </summary>
+        /// <param name="doc"></param>
+        /// <returns>current Connection string </returns>
+        string GetConnStrFromDoc(WordprocessingDocument doc)
+        {
+            int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
+            if (mailmergecount != 1)
+                throw new ArgumentException("mailmergecount is not 1");
+            // Get the Document Settings Part
+            var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
+            var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
+
+            return mymerge.ConnectString.Val;
+        }
+
+        /// <summary>
+        /// Log
+        /// </summary>
+        void Log(string s, EventLogEntryType t)
+        {
+            if (_log != null)
+            {
+                _log(s, t);
+            }
+        }
+
+        /// <summary>
+        /// Old Code replace With FillDataToDocCP
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="isRemoveWatermark"></param>
+        /// <returns></returns>
+        [Obsolete("replace with FillDataToDocCP  will be removed", false)]
         byte[] FillDataToDoc(byte[] buffer, bool isRemoveWatermark)
         {
 
@@ -350,174 +525,6 @@ namespace Guardian.Documents.MailMerge
 
         }
 
-        string GenerateSQL(string query, Guid activeDoc)
-        {
-            return String.Format(query, activeDoc);
-        }
-
-        protected byte[] Modified(byte[] buffer, string query, string udlPath, string macroTemplatePath, string serverAndPort)
-        {
-            using (var ms = new MemoryStream())
-            {
-                //   (@"\\Crm11mantad\c$\inetpub\wwwroot\WEBMentaService\Doctemplates\r.udl");
-                ms.Write(buffer, 0, buffer.Length);
-                using (var doc = XOPEN.Packaging.WordprocessingDocument.Open(ms, true))
-                {
-                    var propertyName = "server";
-                    var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
-                    SetMailMergeSetting(doc, settingPart, udlPath, query, ConnectionString);
-                    SetCustomProperty(doc, propertyName, serverAndPort);
-                    SetMacroPath(doc, settingPart, macroTemplatePath);
-                }
-                return ms.ToArray();
-            }
-        }
-
-        void SetMacroPath(WordprocessingDocument doc, DocumentSettingsPart settingPart, string macroTemplatePath)
-        {
-            if (!String.IsNullOrEmpty(macroTemplatePath))
-            {
-                var hasMacros = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.AttachedTemplate>().Count();
-
-                var newUriMacr = new Uri(macroTemplatePath);
-                if (hasMacros > 0)
-                {
-                    AttachedTemplate attachTemplate = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.AttachedTemplate>().First();
-
-                    var attachTemplateRelationship = settingPart.GetExternalRelationship(attachTemplate.Id);
-
-                    // attachTemplateRelationship.Uri=  new Uri(macroTemplatePath, UriKind.Absolute);
-
-                    if (attachTemplateRelationship != null)
-                    {
-                        settingPart.DeleteExternalRelationship(attachTemplateRelationship);
-                        settingPart.AddExternalRelationship(attachTemplateRelationship.RelationshipType, newUriMacr, attachTemplate.Id);
-                    }
-                }
-            }
-        }
-
-        void SetCustomProperty(WordprocessingDocument doc, string propertyName, string propertyValue)
-        {
-            var newProp = new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty();
-            newProp.VTLPWSTR = new DocumentFormat.OpenXml.VariantTypes.VTLPWSTR(propertyValue);
-            newProp.FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}";
-            newProp.Name = propertyName;
-
-            var customProps = doc.CustomFilePropertiesPart;
-            if (customProps == null)
-            {
-                // No custom properties? Add the part, and the
-                // collection of properties now.
-                customProps = doc.AddCustomFilePropertiesPart();
-                customProps.Properties =
-                    new DocumentFormat.OpenXml.CustomProperties.Properties();
-            }
-
-            var props = customProps.Properties;
-            if (props != null)
-            {
-                // This will trigger an exception if the property's Name 
-                // property is null, but if that happens, the property is damaged, 
-                // and probably should raise an exception.
-                var prop =
-                    props.Where(
-                    p => ((DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty)p).Name.Value
-                        == propertyName).FirstOrDefault();
-
-                // Does the property exist? If so, get the return value, 
-                // and then delete the property.
-                if (prop != null)
-                {
-                    Debug.WriteLine(prop.InnerText);
-                    prop.Remove();
-                }
-
-                // Append the new property, and 
-                // fix up all the property ID values. 
-                // The PropertyId value must start at 2.
-                props.AppendChild(newProp);
-
-                int pid = 2;
-                foreach (DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty item in props)
-                    item.PropertyId = pid++;
-            }
-
-        }
-
-        void SetMailMergeSetting(WordprocessingDocument doc, DocumentSettingsPart settingPart, string udlPath, string query, string connectionString)
-        {
-            int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
-            if (mailmergecount != 1)
-                throw new ArgumentException("mailmergecount is not 1");
-            // Get the Document Settings Part
-
-            var newUri = new Uri(udlPath);
-
-
-            var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
-            var myDataSourceReference = mymerge.DataSourceReference;
-            if (myDataSourceReference != null)
-            {
-                var myOldRelationship = settingPart.GetExternalRelationship(myDataSourceReference.Id);
-                if (myOldRelationship != null)
-                {
-                    settingPart.DeleteExternalRelationship(myOldRelationship);
-                    settingPart.AddExternalRelationship(myOldRelationship.RelationshipType, newUri, myDataSourceReference.Id);
-                }
-            }
-            if (mymerge.DataSourceObject != null && mymerge.DataSourceObject.SourceReference != null)
-            {
-
-                var myOldRelationship2 = settingPart.GetExternalRelationship(mymerge.DataSourceObject.SourceReference.Id);
-                if (myOldRelationship2 != null)
-                {
-                    settingPart.DeleteExternalRelationship(myOldRelationship2);
-                    settingPart.AddExternalRelationship(myOldRelationship2.RelationshipType, newUri, mymerge.DataSourceObject.SourceReference.Id);
-
-                }
-                if (mymerge.DataSourceObject.UdlConnectionString != null)
-                    mymerge.DataSourceObject.UdlConnectionString.Val = connectionString;
-            }
-            mymerge.ConnectString.Val = connectionString;
-            mymerge.Query.Val = query;
-        }
-
-        string GetQueryFromDoc(WordprocessingDocument doc)
-        {
-            int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
-            if (mailmergecount != 1)
-                throw new ArgumentException("mailmergecount is not 1");
-            // Get the Document Settings Part
-
-
-            var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
-            var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
-
-            return mymerge.Query.Val;
-        }
-
-        string GetConnStrFromDoc(WordprocessingDocument doc)
-        {
-            int mailmergecount = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().Count();
-            if (mailmergecount != 1)
-                throw new ArgumentException("mailmergecount is not 1");
-            // Get the Document Settings Part
-
-
-            var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
-            var mymerge = settingPart.Settings.Elements<XOPEN.Wordprocessing.MailMerge>().First();
-
-            return mymerge.ConnectString.Val;
-        }
-
-        void Log(string s, EventLogEntryType t)
-        {
-            if (_log != null)
-            {
-                _log(s, t);
-            }
-        }
 
     }
 }
