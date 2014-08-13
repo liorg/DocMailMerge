@@ -36,11 +36,10 @@ namespace Guardian.Documents.MailMerge
         }
 
        /// <summary>
-       /// Change 
-       /// 1. Data SOurce
-       /// 2. SQL Query
-       /// 3. macro dotm template 
-       /// 4. custom property for server name and port which connect from macro client side to server api side
+       /// 1. Change Data SOurce
+       /// 2. Change SQL Query
+       /// 3. Replace path of macro dotm template 
+       /// 4. Add custom property for server name and port which connect from macro client side to server api side
        /// </summary>
        /// <param name="query"></param>
        /// <param name="sourceDoc"></param>
@@ -57,6 +56,12 @@ namespace Guardian.Documents.MailMerge
             return targetPath;
         }
 
+        /// <summary>
+        /// Disconnect Data Source from Mail Merge and fill merge field with current query fro doc and also data source from doc
+        /// </summary>
+        /// <param name="sourceDoc"></param>
+        /// <param name="targetDoc"></param>
+        /// <returns></returns>
         public DocPropertiey FillData(ISourceDoc sourceDoc, ITargetDoc targetDoc)
         {
             var dataAfterModified = sourceDoc.GetBuffer();
