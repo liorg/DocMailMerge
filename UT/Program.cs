@@ -22,12 +22,15 @@ namespace UT
             var queryToChange = "select top 1 new_name as name from new_provider;";
             var pathTarget = @"C:\Users\lior_g\Documents\GitHub\DocMailMerge\TemplatesWords\output2.docx";
             var pathSource="http://localhost/TemplatesWords/name.docx";
-            var mailMergeOpenXml = new MailMergeOpenXml(Log, connectionToChange);
+            var mailMergeOpenXml = new MailMergeOpenXml(Log);
 
             var source = new SourceWebDoc(pathSource);
             var target = new TargetLocalDoc(pathTarget);
-
-            var result=mailMergeOpenXml.Merge(queryToChange, source, target,@"c:\\temp\r.udl",@"c:\\temp\TemplateCrmMenta.dotm","someserver:1000");
+            var customProperties = new Dictionary<string, string>();
+            customProperties.Add("server", "");
+            customProperties.Add("entityid", Guid.NewGuid().ToString());
+            customProperties.Add("tempfolder", "c:\\temp\r.udl");
+            var result = mailMergeOpenXml.Merge(connectionToChange,queryToChange, source, target, @"c:\\temp\r.udl", @"c:\\temp\TemplateCrmMenta.dotm", customProperties);
 
         }
     }
