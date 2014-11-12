@@ -183,65 +183,16 @@ namespace Guardian.Documents.MailMerge
 
                     if (!string.IsNullOrEmpty(instruction))
                     {
-
+                        //  build new Run containing a SimpleField
                         Run newrun = new Run();
                         if (runprop != null)
                             newrun.AppendChild(runprop.CloneNode(true));
-                        // Jewish Calander Handle when is dynamic update
-                        // lior grossman
-                        if (instruction.Contains("DATE \\@ \"dd/MM/yyyy\" \\h "))
-                        {
-                            // Fixed jewish calander --lior 
-                            //  build new Run containing a SimpleField
-                            Paragraph p = null;
-                            if (runprop != null && runprop.Parent != null && runprop.Parent.Parent != null)
-                            {
-                                p = runprop.Parent.Parent as Paragraph;
+                        SimpleField simplefield = new SimpleField();
+                        simplefield.Instruction = instruction;
+                        newrun.AppendChild(simplefield);
 
-                            }
-                            else if (innerRuns.Any() && (innerRuns[0] != null && innerRuns[0].Parent != null))
-                            {
-                                p = runprop.Parent.Parent as Paragraph;
-                            }
-                            if (p != null)
-                            {
-                                var texts = p.Descendants<Text>();
-                                StringBuilder sb = new StringBuilder();
-                                foreach (var text in texts)
-                                {
-                                    sb.Append(text.InnerText);
-                                }
-                                newrun.Append(new Text(sb.ToString()));
-                            }
-                            else
-                            {
-                                SimpleField simplefield = new SimpleField();
-                                simplefield.Instruction = instruction;
-                                newrun.AppendChild(simplefield);
-                            }
-
-                        } //end is field date fromat
-                        else
-                        {
-                            // no field date format
-                            SimpleField simplefield = new SimpleField();
-                            simplefield.Instruction = instruction;
-                            newrun.AppendChild(simplefield);
-                        }
                         newfields.Add(newrun, innerRuns.ToArray());
                     }
-                    //if (!string.IsNullOrEmpty(instruction))
-                    //{
-                    //    //  build new Run containing a SimpleField
-                    //    Run newrun = new Run();
-                    //    if (runprop != null)
-                    //        newrun.AppendChild(runprop.CloneNode(true));
-                    //    SimpleField simplefield = new SimpleField();
-                    //    simplefield.Instruction = instruction;
-                    //    newrun.AppendChild(simplefield);
-
-                    //    newfields.Add(newrun, innerRuns.ToArray());
-                    //}
                 }
                 cursor++;
             } while (cursor < runs.Length);
