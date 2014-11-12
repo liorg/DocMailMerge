@@ -135,6 +135,14 @@ namespace Guardian.Documents.MailMerge
             //  search for all the Run elements 
             Run[] runs = mainElement.Descendants<Run>().ToArray();
             if (runs.Length == 0) return;
+            string[] allDateFormats = DateTimeFormatInfo.CurrentInfo.GetAllDateTimePatterns('d');
+            List<string> datesFormat = new List<string>();
+            // Print out july28 in all DateTime formats using the default culture. 
+            foreach (string format in allDateFormats)
+            {
+                var formats = "DATE \\@ \"" + format + "\" \\h ";
+                datesFormat.Add(formats);
+            }
 
             Dictionary<Run, Run[]> newfields = new Dictionary<Run, Run[]>();
 
@@ -172,8 +180,8 @@ namespace Guardian.Documents.MailMerge
                         if (runprop != null && runprop.RightToLeftText != null)
                         {
                             runprop.RightToLeftText.Val = false;
-                            //RightToLeftText t = new RightToLeftText { Val = false };
-                            //runprop.Append(t);
+                            ////RightToLeftText t = new RightToLeftText { Val = false };
+                            ////runprop.Append(t);
                         }
                     } while (found == false && cursor < runs.Length);
 
@@ -183,16 +191,82 @@ namespace Guardian.Documents.MailMerge
 
                     if (!string.IsNullOrEmpty(instruction))
                     {
-                        //  build new Run containing a SimpleField
-                        Run newrun = new Run();
-                        if (runprop != null)
-                            newrun.AppendChild(runprop.CloneNode(true));
-                        SimpleField simplefield = new SimpleField();
-                        simplefield.Instruction = instruction;
-                        newrun.AppendChild(simplefield);
 
+                        Run newrun = new Run();
+
+
+                        // Jewish Calander Handle when is dynamic update
+                        // lior grossman
+                        // if (instruction.Contains("DATE \\@ \"dd/MM/yyyy\" \\h "))
+                        bool isFoundFormatDate = false;
+                        foreach (var format in datesFormat)
+                        {
+                            if (instruction.Contains(format))
+                            {
+                                isFoundFormatDate = true;
+                                break;
+                            }
+                        }
+                        if (isFoundFormatDate)
+                        {
+                            // Fixed jewish calander --lior 
+                            //  build new Run containing a SimpleField
+                            Paragraph p = null;
+                            if (runprop != null && runprop.Parent != null && runprop.Parent.Parent != null)
+                                p = runprop.Parent.Parent as Paragraph;
+
+                            else if (innerRuns.Any() && (innerRuns[0] != null && innerRuns[0].Parent != null))
+                                p = runprop.Parent.Parent as Paragraph;
+
+                            if (p != null)
+                            {
+                                var texts = p.Descendants<Text>();
+                                StringBuilder sb = new StringBuilder();
+                                foreach (var text in texts)
+                                {
+                                    sb.Append(text.InnerText);
+                                }
+                                newrun.Append(new Text(sb.ToString()));
+                                // must be after text set all properties 
+                                if (runprop != null)
+                                    newrun.AppendChild(runprop.CloneNode(true));
+
+                            }
+                            else
+                            {
+                                // must be befor simplefield set all properties 
+                                if (runprop != null)
+                                    newrun.AppendChild(runprop.CloneNode(true));
+                                SimpleField simplefield = new SimpleField();
+                                simplefield.Instruction = instruction;
+                                newrun.AppendChild(simplefield);
+                            }
+
+                        } //end is field date fromat
+                        else
+                        {
+                            // must be befor simplefield set all properties 
+                            if (runprop != null)
+                                newrun.AppendChild(runprop.CloneNode(true));
+                            // no field date format
+                            SimpleField simplefield = new SimpleField();
+                            simplefield.Instruction = instruction;
+                            newrun.AppendChild(simplefield);
+                        }
                         newfields.Add(newrun, innerRuns.ToArray());
                     }
+                    //if (!string.IsNullOrEmpty(instruction))
+                    //{
+                    //    //  build new Run containing a SimpleField
+                    //    Run newrun = new Run();
+                    //    if (runprop != null)
+                    //        newrun.AppendChild(runprop.CloneNode(true));
+                    //    SimpleField simplefield = new SimpleField();
+                    //    simplefield.Instruction = instruction;
+                    //    newrun.AppendChild(simplefield);
+
+                    //    newfields.Add(newrun, innerRuns.ToArray());
+                    //}
                 }
                 cursor++;
             } while (cursor < runs.Length);
@@ -205,7 +279,6 @@ namespace Guardian.Documents.MailMerge
                     kvp.Value[i].Remove();
             }
         }
-
         /// <summary>
         /// Returns a <see cref="Run"/>-openxml element for the given text.
         /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
