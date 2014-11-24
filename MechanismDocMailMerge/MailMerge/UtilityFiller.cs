@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using System.IO;
 using System.Xml.Linq;
+using DocumentFormat.OpenXml.Validation;
 
 namespace Guardian.Documents.MailMerge
 {
@@ -96,6 +97,8 @@ namespace Guardian.Documents.MailMerge
             var list = element.Descendants<SimpleField>().ToArray();
             foreach (var field in list)
             {
+         
+              //  var parent = field.Parent;
                 string fieldname = GetFieldNameWithOptions(field, out switches, out options);
                 if (!string.IsNullOrEmpty(fieldname))
                 {
@@ -105,23 +108,33 @@ namespace Guardian.Documents.MailMerge
                         //TODO: Fixed Before Merge Field
                         formattedText = ApplyFormatting(options[0], values[fieldname], options[1], options[2]);
 
-                        //// Prepend any text specified to appear before the data in the MergeField
-                        //if (!string.IsNullOrEmpty(options[1]))
-                        //{
-                        //    Paragraph paragraphToInsert = new Paragraph();
-                        //   // paragraphToInsert
-                        //    field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[1], field));
-                        //}
+                        // Prepend any text specified to appear before the data in the MergeField
+                        if (!string.IsNullOrEmpty(options[1]) )
+                        {
+                            var runprop = field.Parent.GetFirstChild<RunProperties>();
+                            //var rc = rrrr.Clone();
+                            //var r = new Run();
+                            //r.AppendChild(runprop.CloneNode(true));
+                            //r.AppendChild(new Text(formattedText[1]));
+                            //field.Parent.InsertBeforeSelf<Run>(r);
 
-                        //// Append any text specified to appear after the data in the MergeField
-                        //if (!string.IsNullOrEmpty(options[2]))
-                        //{
-                        //    field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
-                        //}
+                            var text = formattedText[1];
+                            Run runToInsert = GetRunElementForText(text, field);
+                            field.Parent.InsertBeforeSelf<Run>(runToInsert);
+
+                            //field.Parent.InsertBeforeSelf<Run>(new Run(new Text(formattedText[1]),rrrr.Clone()));
+                            //field.Parent.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[1], field));
+                            //field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[1], field));
+                        }
+                                                // Append any text specified to appear after the data in the MergeField
+                        if (!string.IsNullOrEmpty(options[2]))
+                        {
+                            field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
+                        }
 
                         // replace mergefield with text
                         field.Parent.ReplaceChild<SimpleField>(GetRunElementForText(formattedText[0], field), field);
-
+                       
 
                     }
                     else
@@ -157,8 +170,9 @@ namespace Guardian.Documents.MailMerge
             // Print out july28 in all DateTime formats using the default culture. 
             foreach (string format in allDateFormats)
             {
-                var formats = "DATE \\@ \"" + format + "\" \\h ";
-                datesFormat.Add(formats);
+                // var formats = "DATE \\@ \"" + format + "\" \\h ";
+                //datesFormat.Add(formats);
+                datesFormat.Add(format);
             }
 
             Dictionary<Run, Run[]> newfields = new Dictionary<Run, Run[]>();
@@ -307,7 +321,7 @@ namespace Guardian.Documents.MailMerge
         /// <param name="text">The text to be inserted.</param>
         /// <param name="placeHolder">The placeholder where the text will be inserted.</param>
         /// <returns>A new <see cref="Run"/>-openxml element containing the specified text.</returns>
-        [Obsolete("replace with new GetRunElementForText ",false)]
+        [Obsolete("replace with new GetRunElementForText ", false)]
         static Run GetRunElementForTextOld(string text, SimpleField placeHolder)
         {
             string rpr = null;
@@ -684,6 +698,9 @@ namespace Guardian.Documents.MailMerge
             paragraphToInsert.Append(runToInsert);
             return paragraphToInsert;
         }
+       
+
+
 
     }
 }
