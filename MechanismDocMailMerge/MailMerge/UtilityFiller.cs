@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using System.IO;
+using System.Xml.Linq;
 
 namespace Guardian.Documents.MailMerge
 {
@@ -21,14 +22,26 @@ namespace Guardian.Documents.MailMerge
         /// <summary>
         /// Regex used to parse MERGEFIELDs in the provided document.
         /// </summary>
-        private static readonly Regex instructionRegEx =
-            new Regex(
-                        @"^[\s]*MERGEFIELD[\s]+(?<name>[#\w]*){1}               # This retrieves the field's name (Named Capture Group -> name)
+        //        private static readonly Regex instructionRegEx =
+        //            new Regex(
+        //                        @"^[\s]*MERGEFIELD[\s]+(?<name>[#\w]*){1}               # This retrieves the field's name (Named Capture Group -> name)
+        //                            [\s]*(\\\*[\s]+(?<Format>[\w]*){1})?                # Retrieves field's format flag (Named Capture Group -> Format)
+        //                            [\s]*(\\b[\s]+[""]?(?<PreText>[^\\]*){1})?         # Retrieves text to display before field data (Named Capture Group -> PreText)
+        //                                                                                # Retrieves text to display after field data (Named Capture Group -> PostText)
+        //                            [\s]*(\\f[\s]+[""]?(?<PostText>[^\\]*){1})?",
+        //                        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
+
+        // http://stackoverflow.com/questions/12206667/i-need-to-modify-a-word-mergefield-regular-expression
+        // lior gr fixed because the old not support {MERGEFIELD  "xx"}  only { MERGEFIELD  xx} on field  exmple { MERGEFIELD  "MitlonenFullName" }
+        private static readonly Regex instructionRegEx = new Regex(
+                           @"^[\s]*MERGEFIELD[\s]+""?(?<name>[#\w]*){1}""?           # This retrieves the field's name (Named Capture Group -> name)
                             [\s]*(\\\*[\s]+(?<Format>[\w]*){1})?                # Retrieves field's format flag (Named Capture Group -> Format)
                             [\s]*(\\b[\s]+[""]?(?<PreText>[^\\]*){1})?         # Retrieves text to display before field data (Named Capture Group -> PreText)
                                                                                 # Retrieves text to display after field data (Named Capture Group -> PostText)
                             [\s]*(\\f[\s]+[""]?(?<PostText>[^\\]*){1})?",
-                        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
+                            RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
+
+
 
         /// <summary>
         /// Change code from code project that's only have array of fields(lior G)
@@ -89,22 +102,27 @@ namespace Guardian.Documents.MailMerge
                     if (values.ContainsKey(fieldname)
                         && !string.IsNullOrEmpty(values[fieldname]))
                     {
+                        //TODO: Fixed Before Merge Field
                         formattedText = ApplyFormatting(options[0], values[fieldname], options[1], options[2]);
 
-                        // Prepend any text specified to appear before the data in the MergeField
-                        if (!string.IsNullOrEmpty(options[1]))
-                        {
-                            field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[1], field));
-                        }
+                        //// Prepend any text specified to appear before the data in the MergeField
+                        //if (!string.IsNullOrEmpty(options[1]))
+                        //{
+                        //    Paragraph paragraphToInsert = new Paragraph();
+                        //   // paragraphToInsert
+                        //    field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[1], field));
+                        //}
 
-                        // Append any text specified to appear after the data in the MergeField
-                        if (!string.IsNullOrEmpty(options[2]))
-                        {
-                            field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
-                        }
+                        //// Append any text specified to appear after the data in the MergeField
+                        //if (!string.IsNullOrEmpty(options[2]))
+                        //{
+                        //    field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
+                        //}
 
                         // replace mergefield with text
                         field.Parent.ReplaceChild<SimpleField>(GetRunElementForText(formattedText[0], field), field);
+
+
                     }
                     else
                     {
@@ -122,7 +140,6 @@ namespace Guardian.Documents.MailMerge
                 kvp.Key.Remove();
             }
         }
-
 
         /// <summary>
         /// Since MS Word 2010 the SimpleField element is not longer used. It has been replaced by a combination of
@@ -193,8 +210,6 @@ namespace Guardian.Documents.MailMerge
                     {
 
                         Run newrun = new Run();
-
-
                         // Jewish Calander Handle when is dynamic update
                         // lior grossman
                         // if (instruction.Contains("DATE \\@ \"dd/MM/yyyy\" \\h "))
@@ -230,6 +245,10 @@ namespace Guardian.Documents.MailMerge
                                 // must be after text set all properties 
                                 if (runprop != null)
                                     newrun.AppendChild(runprop.CloneNode(true));
+                                // SimpleField simplefield = new SimpleField();
+                                //simplefield.Instruction = instruction;
+                                // simplefield.AppendChild(new Text(sb.ToString()));
+                                // newrun.AppendChild(simplefield);
 
                             }
                             else
@@ -279,6 +298,7 @@ namespace Guardian.Documents.MailMerge
                     kvp.Value[i].Remove();
             }
         }
+
         /// <summary>
         /// Returns a <see cref="Run"/>-openxml element for the given text.
         /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
@@ -287,7 +307,8 @@ namespace Guardian.Documents.MailMerge
         /// <param name="text">The text to be inserted.</param>
         /// <param name="placeHolder">The placeholder where the text will be inserted.</param>
         /// <returns>A new <see cref="Run"/>-openxml element containing the specified text.</returns>
-        static Run GetRunElementForText(string text, SimpleField placeHolder)
+        [Obsolete("replace with new GetRunElementForText ",false)]
+        static Run GetRunElementForTextOld(string text, SimpleField placeHolder)
         {
             string rpr = null;
             if (placeHolder != null)
@@ -338,6 +359,70 @@ namespace Guardian.Documents.MailMerge
             return r;
         }
 
+
+        /// <summary>
+        /// Returns a <see cref="Run"/>-openxml element for the given text.
+        /// I think it's save loose formation 
+        /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
+        /// The <see cref="SimpleField"/> placeholder can be provided too, to allow duplicating the formatting.
+        /// </summary>
+        /// <param name="text">The text to be inserted.</param>
+        /// <param name="placeHolder">The placeholder where the text will be inserted.</param>
+        /// <returns>A new <see cref="Run"/>-openxml element containing the specified text.</returns>
+        internal static Run GetRunElementForText(string text, SimpleField placeHolder)
+        {
+            string rpr = null;
+            if (placeHolder != null)
+            {
+                var xdoc = XDocument.Parse((placeHolder.Parent).OuterXml.Replace(placeHolder.OuterXml, string.Empty));
+                if (xdoc.Root != null)
+                {
+                    var xrpr = xdoc.Root.Elements().FirstOrDefault(x => x.Name.LocalName == "rPr");
+
+                    if (xrpr != null)
+                        rpr = xrpr.ToString();
+                }
+            }
+
+            var r = new Run();
+
+            if (!string.IsNullOrEmpty(rpr))
+            {
+                r.AppendChild(new RunProperties(rpr));
+            }
+
+            if (!string.IsNullOrEmpty(text))
+            {
+                // first process line breaks
+                string[] split = text.Split(new string[] { "\n" }, StringSplitOptions.None);
+                bool first = true;
+                foreach (string s in split)
+                {
+                    if (!first)
+                    {
+                        r.Append(new Break());
+                    }
+
+                    first = false;
+
+                    // then process tabs
+                    bool firsttab = true;
+                    string[] tabsplit = s.Split(new[] { "\t" }, StringSplitOptions.None);
+                    foreach (string tabtext in tabsplit)
+                    {
+                        if (!firsttab)
+                        {
+                            r.Append(new TabChar());
+                        }
+
+                        r.AppendChild<Text>(new Text(tabtext));
+                        firsttab = false;
+                    }
+                }
+            }
+
+            return r;
+        }
 
         /// <summary>
         /// Applies any formatting specified to the pre and post text as 
