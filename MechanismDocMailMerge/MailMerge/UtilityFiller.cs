@@ -13,7 +13,11 @@ using DocumentFormat.OpenXml.Validation;
 
 namespace Guardian.Documents.MailMerge
 {
-    //
+    //current ver 1.0.0.1
+    // version 1.0.0.1:
+    // 1. remove rtl from ConvertFieldCodes (fixed in GetRunElementForText)
+    // 2. add handle on pre text mailmerge field (was error in opening word after fill merge)
+    // 3 handle quetes when has on merger mail field exmple { MERGEFIELD  "MitlonenFullName" }
     /// <summary>
     /// Helper class for filling in data forms based on Word 
     /// http://www.codeproject.com/Articles/38575/Fill-Mergefields-in-docx-Documents-without-Microso
@@ -76,7 +80,6 @@ namespace Guardian.Documents.MailMerge
                 FillWordFieldsInElement(values, fpart.Footer);
                 fpart.Footer.Save();    // save footer back in package
             }
-
         }
 
         /// <summary>
@@ -113,7 +116,6 @@ namespace Guardian.Documents.MailMerge
                             
                             // not working l.g
                             // field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
-
                             // replace with that
                             var text = formattedText[1];
                             Run runToInsert = GetRunElementForText(text, field, true);
