@@ -35,13 +35,12 @@ namespace Guardian.Documents.MailMerge
         // http://stackoverflow.com/questions/12206667/i-need-to-modify-a-word-mergefield-regular-expression
         // lior gr fixed because the old not support {MERGEFIELD  "xx"}  only { MERGEFIELD  xx} on field  exmple { MERGEFIELD  "MitlonenFullName" }
         private static readonly Regex instructionRegEx = new Regex(
-                           @"^[\s]*MERGEFIELD[\s]+""?(?<name>[#\w]*){1}""?           # This retrieves the field's name (Named Capture Group -> name)
-                            [\s]*(\\\*[\s]+(?<Format>[\w]*){1})?                # Retrieves field's format flag (Named Capture Group -> Format)
-                            [\s]*(\\b[\s]+[""]?(?<PreText>[^\\]*){1})?         # Retrieves text to display before field data (Named Capture Group -> PreText)
-                                                                                # Retrieves text to display after field data (Named Capture Group -> PostText)
-                            [\s]*(\\f[\s]+[""]?(?<PostText>[^\\]*){1})?",
+                                   @"^[\s]*MERGEFIELD[\s]+""?(?<name>[#\w]*){1}""?           # This retrieves the field's name (Named Capture Group -> name) fixed l.g 
+                                              [\s]*(\\\*[\s]+(?<Format>[\w]*){1})?                # Retrieves field's format flag (Named Capture Group -> Format)
+                                              [\s]*(\\b[\s]+[""]?(?<PreText>[^\\]*){1})?         # Retrieves text to display before field data (Named Capture Group -> PreText)
+                                                                                        # Retrieves text to display after field data (Named Capture Group -> PostText)
+                                              [\s]*(\\f[\s]+[""]?(?<PostText>[^\\]*){1})?",
                             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
-
 
 
         /// <summary>
@@ -97,8 +96,8 @@ namespace Guardian.Documents.MailMerge
             var list = element.Descendants<SimpleField>().ToArray();
             foreach (var field in list)
             {
-         
-              //  var parent = field.Parent;
+
+                //  var parent = field.Parent;
                 string fieldname = GetFieldNameWithOptions(field, out switches, out options);
                 if (!string.IsNullOrEmpty(fieldname))
                 {
@@ -109,33 +108,30 @@ namespace Guardian.Documents.MailMerge
                         formattedText = ApplyFormatting(options[0], values[fieldname], options[1], options[2]);
 
                         // Prepend any text specified to appear before the data in the MergeField
-                        if (!string.IsNullOrEmpty(options[1]) )
+                        if (!string.IsNullOrEmpty(options[1]))
                         {
-                            var runprop = field.Parent.GetFirstChild<RunProperties>();
-                            //var rc = rrrr.Clone();
-                            //var r = new Run();
-                            //r.AppendChild(runprop.CloneNode(true));
-                            //r.AppendChild(new Text(formattedText[1]));
-                            //field.Parent.InsertBeforeSelf<Run>(r);
+                            
+                            // not working l.g
+                            // field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
 
+                            // replace with that
                             var text = formattedText[1];
-                            Run runToInsert = GetRunElementForText(text, field);
-                            field.Parent.InsertBeforeSelf<Run>(runToInsert);
+                            Run runToInsert = GetRunElementForText(text, field, true);
+                            var runprop = runToInsert.GetFirstChild<RunProperties>();
 
-                            //field.Parent.InsertBeforeSelf<Run>(new Run(new Text(formattedText[1]),rrrr.Clone()));
-                            //field.Parent.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[1], field));
-                            //field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[1], field));
+                            if (runprop != null && runprop.RightToLeftText != null)
+                                runprop.RightToLeftText.Val = false;
+
+                            field.Parent.InsertBeforeSelf<Run>(runToInsert);
+                            // end replace l.g
                         }
-                                                // Append any text specified to appear after the data in the MergeField
+                        // Append any text specified to appear after the data in the MergeField
                         if (!string.IsNullOrEmpty(options[2]))
                         {
                             field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
                         }
-
                         // replace mergefield with text
-                        field.Parent.ReplaceChild<SimpleField>(GetRunElementForText(formattedText[0], field), field);
-                       
-
+                        field.Parent.ReplaceChild<SimpleField>(GetRunElementForText(formattedText[0], field, true), field);
                     }
                     else
                     {
@@ -144,7 +140,6 @@ namespace Guardian.Documents.MailMerge
                     }
                 }
             }
-
             // second pass : clear empty fields
             foreach (KeyValuePair<SimpleField, string[]> kvp in emptyfields)
             {
@@ -210,9 +205,8 @@ namespace Guardian.Documents.MailMerge
                         // Fixed by lior G
                         if (runprop != null && runprop.RightToLeftText != null)
                         {
-                            runprop.RightToLeftText.Val = false;
-                            ////RightToLeftText t = new RightToLeftText { Val = false };
-                            ////runprop.Append(t);
+                            //  runprop.RightToLeftText.Val = false;
+
                         }
                     } while (found == false && cursor < runs.Length);
 
@@ -259,11 +253,6 @@ namespace Guardian.Documents.MailMerge
                                 // must be after text set all properties 
                                 if (runprop != null)
                                     newrun.AppendChild(runprop.CloneNode(true));
-                                // SimpleField simplefield = new SimpleField();
-                                //simplefield.Instruction = instruction;
-                                // simplefield.AppendChild(new Text(sb.ToString()));
-                                // newrun.AppendChild(simplefield);
-
                             }
                             else
                             {
@@ -288,18 +277,6 @@ namespace Guardian.Documents.MailMerge
                         }
                         newfields.Add(newrun, innerRuns.ToArray());
                     }
-                    //if (!string.IsNullOrEmpty(instruction))
-                    //{
-                    //    //  build new Run containing a SimpleField
-                    //    Run newrun = new Run();
-                    //    if (runprop != null)
-                    //        newrun.AppendChild(runprop.CloneNode(true));
-                    //    SimpleField simplefield = new SimpleField();
-                    //    simplefield.Instruction = instruction;
-                    //    newrun.AppendChild(simplefield);
-
-                    //    newfields.Add(newrun, innerRuns.ToArray());
-                    //}
                 }
                 cursor++;
             } while (cursor < runs.Length);
@@ -383,7 +360,7 @@ namespace Guardian.Documents.MailMerge
         /// <param name="text">The text to be inserted.</param>
         /// <param name="placeHolder">The placeholder where the text will be inserted.</param>
         /// <returns>A new <see cref="Run"/>-openxml element containing the specified text.</returns>
-        internal static Run GetRunElementForText(string text, SimpleField placeHolder)
+        internal static Run GetRunElementForText(string text, SimpleField placeHolder, bool preserveWhiteSpace = false)
         {
             string rpr = null;
             if (placeHolder != null)
@@ -407,6 +384,16 @@ namespace Guardian.Documents.MailMerge
 
             if (!string.IsNullOrEmpty(text))
             {
+                // l.g fixed ltr in latin language
+                bool isHasEngChar = Regex.IsMatch(text, @"[A-Za-z]+");  //l.g
+                if (isHasEngChar && r.GetFirstChild<RunProperties>() != null)
+                {
+                    var rprLtr = r.GetFirstChild<RunProperties>();
+                    if (rprLtr.RightToLeftText == null)
+                        rprLtr.RightToLeftText = new RightToLeftText();
+                    rprLtr.RightToLeftText.Val = false;
+                }
+
                 // first process line breaks
                 string[] split = text.Split(new string[] { "\n" }, StringSplitOptions.None);
                 bool first = true;
@@ -428,8 +415,9 @@ namespace Guardian.Documents.MailMerge
                         {
                             r.Append(new TabChar());
                         }
-
-                        r.AppendChild<Text>(new Text(tabtext));
+                        var txt = new Text(tabtext);
+                        txt.Space = SpaceProcessingModeValues.Preserve;
+                        r.AppendChild<Text>(txt);
                         firsttab = false;
                     }
                 }
@@ -599,9 +587,20 @@ namespace Guardian.Documents.MailMerge
                 {
                     fieldname = m.Groups["name"].ToString().Trim();
                     options[0] = m.Groups["Format"].Value.Trim();
-                    options[1] = m.Groups["PreText"].Value.Trim();
+                    options[1] = m.Groups["PreText"].Value.Trim(); //becuase fixed we remove double quetes l.g
                     options[2] = m.Groups["PostText"].Value.Trim();
                     int pos = fieldname.IndexOf('#');
+                    if (!String.IsNullOrEmpty(options[1]))
+                    {
+                        var removeDoubleQuotesExpr = @"[^\\""]*(\\""[^\\""]*)*";
+                        var removeDoubleQuotes = new Regex(removeDoubleQuotesExpr);
+
+                        Match matchSyntax = removeDoubleQuotes.Match(options[1]);
+
+                        if (matchSyntax.Success)
+                            options[1] = matchSyntax.Groups[0] != null && String.IsNullOrEmpty(matchSyntax.Groups[0].Value) ? options[1] : matchSyntax.Groups[0].Value;
+
+                    }
                     if (pos > 0)
                     {
                         // Process the switches, correct the fieldname.
@@ -698,7 +697,7 @@ namespace Guardian.Documents.MailMerge
             paragraphToInsert.Append(runToInsert);
             return paragraphToInsert;
         }
-       
+
 
 
 
