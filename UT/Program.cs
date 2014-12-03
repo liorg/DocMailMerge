@@ -25,8 +25,8 @@ namespace UT
             var mailMergeOpenXml = new MailMergeOpenXml(Log);
 
 
-            pathSource = "http://crm11mantad:8080/Doctemplates/output/t3.docm";
-            pathTarget = @"c:\temp\t3.docm";
+            pathSource = "http://crm11mantad:8080/Doctemplates/output/t5.docm";
+            pathTarget = @"c:\temp\t5.docm";
 
             var source = new SourceWebDoc(pathSource);
             var target = new TargetLocalDoc(pathTarget);

@@ -183,7 +183,7 @@ namespace Guardian.Documents.MailMerge
         Dictionary<string, string> GetFieldsValues(string query, string connStr)
         {
             DataRow dataRow = null;
-            Dictionary<string, string> values = new Dictionary<string, string>();
+            Dictionary<string, string> values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase); // do not care about key case sensetive
             DataTable dt = new DataTable();
 
             // using (var adapter = new System.Data.SqlClient.SqlDataAdapter(query, connStr))
