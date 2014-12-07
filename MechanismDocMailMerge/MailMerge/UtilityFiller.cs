@@ -13,6 +13,7 @@ using DocumentFormat.OpenXml.Validation;
 
 namespace Guardian.Documents.MailMerge
 {
+    /* thank's god */
     /*current ver 1.0.0.4 */
 
     // version 1.0.0.4
