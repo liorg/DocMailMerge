@@ -322,14 +322,6 @@ namespace Guardian.Documents.MailMerge
             }
         }
 
-        /// <summary>
-        /// Returns a <see cref="Run"/>-openxml element for the given text.
-        /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
-        /// The <see cref="SimpleField"/> placeholder can be provided too, to allow duplicating the formatting.
-        /// </summary>
-        /// <param name="text">The text to be inserted.</param>
-        /// <param name="placeHolder">The placeholder where the text will be inserted.</param>
-        /// <returns>A new <see cref="Run"/>-openxml element containing the specified text.</returns>
         [Obsolete("replace with new GetRunElementForText ", false)]
         static Run GetRunElementForTextOld(string text, SimpleField placeHolder)
         {
@@ -381,7 +373,6 @@ namespace Guardian.Documents.MailMerge
 
             return r;
         }
-
 
         /// <summary>
         /// separte all words for handle  rtl (when english has than disable rtl) l.g
@@ -461,7 +452,15 @@ namespace Guardian.Documents.MailMerge
             }
             return r;
         }
-
+       
+        /// <summary>
+        /// Returns a <see cref="Run"/>-openxml element for the given text.
+        /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
+        /// The <see cref="SimpleField"/> placeholder can be provided too, to allow duplicating the formatting.
+        /// </summary>
+        /// <param name="text">The text to be inserted.</param>
+        /// <param name="placeHolder">The placeholder where the text will be inserted.</param>
+        /// <returns>A new <see cref="Run"/>-openxml element containing the specified text.</returns>
         internal static Run GetRunElementForText(string text, SimpleField placeHolder, bool preserveWhiteSpace = false)
         {
             string rpr = null;
@@ -526,7 +525,6 @@ namespace Guardian.Documents.MailMerge
 
             return r;
         }
-
 
         /// <summary>
         /// Applies any formatting specified to the pre and post text as 
@@ -799,9 +797,6 @@ namespace Guardian.Documents.MailMerge
             paragraphToInsert.Append(runToInsert);
             return paragraphToInsert;
         }
-
-
-
 
     }
 }
