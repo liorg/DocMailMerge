@@ -13,13 +13,15 @@ using DocumentFormat.OpenXml.Validation;
 
 namespace Guardian.Documents.MailMerge
 {
-    /*current ver 1.0.0.3 */
+    /*current ver 1.0.0.4 */
 
+    // version 1.0.0.4
+    // 1. Remove Paragraph from mail merge field for prevent line to be empty  l.g -RemoveParentParagrph
     //version 1.0.0.3
-    //1.handle datetime number sticky to month l.g
+    //1.handle datetime number sticky to month l.g - ConvertFieldCodes
     //2. decorate code 
-   // version 1.0.0.2:
-    // 1. when handle rtl ltr on some context then create for each word run object and set rtl=false (disable) on english charcters
+    // version 1.0.0.2:
+    // 1. when handle rtl ltr on some context then create for each word run object and set rtl=false (disable) on english charcters -GetRunElementForTextRtlHandle
     // version 1.0.0.1:
     // 1. remove rtl from ConvertFieldCodes (fixed in GetRunElementForText)
     // 2. add handle on pre text mailmerge field (was error in opening word after fill merge)
@@ -156,7 +158,11 @@ namespace Guardian.Documents.MailMerge
             {
                 // if field is unknown or empty: execute switches and remove it from document !
                 ExecuteSwitches(kvp.Key, kvp.Value);
+                //  l.g
+                RemoveParentParagrph(kvp.Key);
+
                 kvp.Key.Remove();
+
             }
         }
 
@@ -373,86 +379,7 @@ namespace Guardian.Documents.MailMerge
 
             return r;
         }
-
-        /// <summary>
-        /// separte all words for handle  rtl (when english has than disable rtl) l.g
-        /// Returns a <see cref="Run"/>-openxml element for the given text.
-        /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
-        /// The <see cref="SimpleField"/> placeholder can be provided too, to allow duplicating the formatting.
-        /// </summary>
-        /// <param name="text">The text to be inserted.</param>
-        /// <param name="placeHolder">The placeholder where the text will be inserted.</param>
-        /// <returns>A new <see cref="Run"/>-openxml element containing the specified text.</returns>
-        internal static Run GetRunElementForTextRtlHandle(string text, SimpleField placeHolder)
-        {
-            string rpr = null;
-            if (placeHolder != null)
-            {
-                var xdoc = XDocument.Parse((placeHolder.Parent).OuterXml.Replace(placeHolder.OuterXml, string.Empty));
-                if (xdoc.Root != null)
-                {
-                    var xrpr = xdoc.Root.Elements().FirstOrDefault(x => x.Name.LocalName == "rPr");
-
-                    if (xrpr != null)
-                        rpr = xrpr.ToString();
-                }
-            }
-            var r = new Run();
-
-            if (!string.IsNullOrEmpty(rpr))
-            {
-                r.AppendChild(new RunProperties(rpr));
-            }
-
-            if (!string.IsNullOrEmpty(text))
-            {
-                string[] split = text.Split(new string[] { "\n" }, StringSplitOptions.None);
-                bool first = true;
-                foreach (string s in split)
-                {
-                    if (!first)
-                    {
-                        r.Append(new Break());
-                    }
-
-                    first = false;
-
-                    // then process tabs
-                    bool firsttab = true;
-                    string[] tabsplit = s.Split(new[] { "\t" }, StringSplitOptions.None);
-                    foreach (string tabtext in tabsplit)
-                    {
-                        if (!firsttab)
-                        {
-                            r.Append(new TabChar());
-                        }
-                        // separte all words for handle  rtl (when english has than disable rtl)
-                        //  string[] wordSpl = Regex.Split(tabtext, @"(?<=[\s+])");
-                        string[] wordSpl = Regex.Split(tabtext, splitWhiteSpaceIncludeRegFormater);
-
-                        foreach (var w in wordSpl)
-                        {
-                            Run rWord = new Run();
-                            var txtTemp = new Text(w); 
-                            txtTemp.Space = SpaceProcessingModeValues.Preserve;
-                            rWord.AppendChild(new RunProperties(rpr));
-                            rWord.AppendChild<Text>(txtTemp);
-                            r.AppendChild<Run>(rWord);
-                            bool isHasEngChar = Regex.IsMatch(w,isEngCharcter);// @"[A-Za-z]+");  //l.g
-                            if (isHasEngChar && r.GetFirstChild<RunProperties>() != null)
-                            {
-                                var rprLtr = rWord.GetFirstChild<RunProperties>();
-                                if (rprLtr.RightToLeftText == null)
-                                    rprLtr.RightToLeftText = new RightToLeftText();
-                                rprLtr.RightToLeftText.Val = false;
-                            }
-                        }
-                    }
-                }
-            }
-            return r;
-        }
-       
+        
         /// <summary>
         /// Returns a <see cref="Run"/>-openxml element for the given text.
         /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
@@ -757,7 +684,7 @@ namespace Guardian.Documents.MailMerge
                 }
             }
         }
-
+    
         /// <summary>
         /// Returns the first parent of a given <see cref="OpenXmlElement"/> that corresponds
         /// to the given type.
@@ -796,6 +723,101 @@ namespace Guardian.Documents.MailMerge
             Paragraph paragraphToInsert = new Paragraph();
             paragraphToInsert.Append(runToInsert);
             return paragraphToInsert;
+        }
+
+        /// <summary>
+        /// separte all words for handle  rtl (when english has than disable rtl) l.g
+        /// Returns a <see cref="Run"/>-openxml element for the given text.
+        /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
+        /// The <see cref="SimpleField"/> placeholder can be provided too, to allow duplicating the formatting.
+        /// </summary>
+        /// <param name="text">The text to be inserted.</param>
+        /// <param name="placeHolder">The placeholder where the text will be inserted.</param>
+        /// <returns>A new <see cref="Run"/>-openxml element containing the specified text.</returns>
+        internal static Run GetRunElementForTextRtlHandle(string text, SimpleField placeHolder)
+        {
+            string rpr = null;
+            if (placeHolder != null)
+            {
+                var xdoc = XDocument.Parse((placeHolder.Parent).OuterXml.Replace(placeHolder.OuterXml, string.Empty));
+                if (xdoc.Root != null)
+                {
+                    var xrpr = xdoc.Root.Elements().FirstOrDefault(x => x.Name.LocalName == "rPr");
+
+                    if (xrpr != null)
+                        rpr = xrpr.ToString();
+                }
+            }
+            var r = new Run();
+
+            if (!string.IsNullOrEmpty(rpr))
+            {
+                r.AppendChild(new RunProperties(rpr));
+            }
+
+            if (!string.IsNullOrEmpty(text))
+            {
+                string[] split = text.Split(new string[] { "\n" }, StringSplitOptions.None);
+                bool first = true;
+                foreach (string s in split)
+                {
+                    if (!first)
+                    {
+                        r.Append(new Break());
+                    }
+
+                    first = false;
+
+                    // then process tabs
+                    bool firsttab = true;
+                    string[] tabsplit = s.Split(new[] { "\t" }, StringSplitOptions.None);
+                    foreach (string tabtext in tabsplit)
+                    {
+                        if (!firsttab)
+                        {
+                            r.Append(new TabChar());
+                        }
+                        // separte all words for handle  rtl (when english has than disable rtl)
+                        //  string[] wordSpl = Regex.Split(tabtext, @"(?<=[\s+])");
+                        string[] wordSpl = Regex.Split(tabtext, splitWhiteSpaceIncludeRegFormater);
+
+                        foreach (var w in wordSpl)
+                        {
+                            Run rWord = new Run();
+                            var txtTemp = new Text(w);
+                            txtTemp.Space = SpaceProcessingModeValues.Preserve;
+                            rWord.AppendChild(new RunProperties(rpr));
+                            rWord.AppendChild<Text>(txtTemp);
+                            r.AppendChild<Run>(rWord);
+                            bool isHasEngChar = Regex.IsMatch(w, isEngCharcter);// @"[A-Za-z]+");  //l.g
+                            if (isHasEngChar && r.GetFirstChild<RunProperties>() != null)
+                            {
+                                var rprLtr = rWord.GetFirstChild<RunProperties>();
+                                if (rprLtr.RightToLeftText == null)
+                                    rprLtr.RightToLeftText = new RightToLeftText();
+                                rprLtr.RightToLeftText.Val = false;
+                            }
+                        }
+                    }
+                }
+            }
+            return r;
+        }
+       
+        /// <summary>
+        /// Remove Paragraph from mail merge field for prevent line to be empty  l.g
+        /// </summary>
+        /// <param name="element">merge mail field</param>
+        static void RemoveParentParagrph(OpenXmlElement element)
+        {
+            if (element == null)
+                return;
+            Paragraph paragraph = GetFirstParent<Paragraph>(element);
+            if (paragraph != null)
+            {
+                paragraph.Remove();
+            }
+
         }
 
     }
