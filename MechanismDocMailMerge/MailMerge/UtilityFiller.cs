@@ -108,10 +108,12 @@ namespace Guardian.Documents.MailMerge
 
             // First pass: fill in data, but do not delete empty fields.  Deletions silently break the loop.
             var list = element.Descendants<SimpleField>().ToArray();
+            List<Paragraph> paragrphsChanged = new List<Paragraph>();
             foreach (var field in list)
             {
 
-                //  var parent = field.Parent;
+                 var parent = field.Parent;
+                
                 string fieldname = GetFieldNameWithOptions(field, out switches, out options);
                 if (!string.IsNullOrEmpty(fieldname))
                 {
@@ -135,16 +137,23 @@ namespace Guardian.Documents.MailMerge
                             if (runprop != null && runprop.RightToLeftText != null)
                                 runprop.RightToLeftText.Val = false;
 
-                            field.Parent.InsertBeforeSelf<Run>(runToInsert);
+                            parent.InsertBeforeSelf<Run>(runToInsert); //field.Parent.InsertBeforeSelf<Run>(runToInsert);
                             // end: replace l.g
                         }
                         // Append any text specified to appear after the data in the MergeField
                         if (!string.IsNullOrEmpty(options[2]))
                         {
-                            field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
+                            parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));// field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
                         }
                         // replace mergefield with text
-                        field.Parent.ReplaceChild<SimpleField>(GetRunElementForTextRtlHandle(formattedText[0], field), field);
+                        parent.ReplaceChild<SimpleField>(GetRunElementForTextRtlHandle(formattedText[0], field), field);// field.Parent.ReplaceChild<SimpleField>(GetRunElementForTextRtlHandle(formattedText[0], field), field);
+
+                        var paragraphItemChange = GetFirstParent<Paragraph>(parent);
+                        if (paragraphItemChange != null && !paragrphsChanged.Contains(paragraphItemChange))
+                        {
+                            paragrphsChanged.Add(paragraphItemChange);
+                        }
+
                     }
                     else
                     {
@@ -159,7 +168,7 @@ namespace Guardian.Documents.MailMerge
                 // if field is unknown or empty: execute switches and remove it from document !
                 ExecuteSwitches(kvp.Key, kvp.Value);
                 //  l.g
-                RemoveParentParagrph(kvp.Key);
+                RemoveParentParagrph(kvp.Key, paragrphsChanged);
 
                 kvp.Key.Remove();
 
@@ -808,13 +817,16 @@ namespace Guardian.Documents.MailMerge
         /// Remove Paragraph from mail merge field for prevent line to be empty  l.g
         /// </summary>
         /// <param name="element">merge mail field</param>
-        static void RemoveParentParagrph(OpenXmlElement element)
+        static void RemoveParentParagrph(OpenXmlElement element, IEnumerable<Paragraph> paragraphChange)
         {
             if (element == null)
                 return;
             Paragraph paragraph = GetFirstParent<Paragraph>(element);
             if (paragraph != null)
             {
+                if (paragraphChange.Contains(paragraph))
+                    return;
+
                 paragraph.Remove();
             }
 
