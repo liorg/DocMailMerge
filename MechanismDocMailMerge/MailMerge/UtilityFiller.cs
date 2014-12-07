@@ -13,8 +13,12 @@ using DocumentFormat.OpenXml.Validation;
 
 namespace Guardian.Documents.MailMerge
 {
-    //current ver 1.0.0.2
-    // version 1.0.0.2:
+    /*current ver 1.0.0.3 */
+
+    //version 1.0.0.3
+    //1.handle datetime number sticky to month l.g
+    //2. decorate code 
+   // version 1.0.0.2:
     // 1. when handle rtl ltr on some context then create for each word run object and set rtl=false (disable) on english charcters
     // version 1.0.0.1:
     // 1. remove rtl from ConvertFieldCodes (fixed in GetRunElementForText)
@@ -48,6 +52,9 @@ namespace Guardian.Documents.MailMerge
                                               [\s]*(\\f[\s]+[""]?(?<PostText>[^\\]*){1})?",
                             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
 
+        private static readonly string splitWhiteSpaceIncludeRegFormater  =@"(?<=[\s+])";
+
+        private static readonly string isEngCharcter = @"[A-Za-z]+";
 
         /// <summary>
         /// Change code from code project that's only have array of fields(lior G)
@@ -118,7 +125,7 @@ namespace Guardian.Documents.MailMerge
                             
                             // not working l.g
                             // field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
-                            // replace with that
+                            // start:replace with that
                             var text = formattedText[1];
                             Run runToInsert = GetRunElementForText(text, field, true);
                             var runprop = runToInsert.GetFirstChild<RunProperties>();
@@ -127,7 +134,7 @@ namespace Guardian.Documents.MailMerge
                                 runprop.RightToLeftText.Val = false;
 
                             field.Parent.InsertBeforeSelf<Run>(runToInsert);
-                            // end replace l.g
+                            // end: replace l.g
                         }
                         // Append any text specified to appear after the data in the MergeField
                         if (!string.IsNullOrEmpty(options[2]))
@@ -169,12 +176,10 @@ namespace Guardian.Documents.MailMerge
             // Print out july28 in all DateTime formats using the default culture. 
             foreach (string format in allDateFormats)
             {
-                // var formats = "DATE \\@ \"" + format + "\" \\h ";
-                //datesFormat.Add(formats);
                 datesFormat.Add(format);
             }
 
-            Dictionary<Run, Run[]> newfields = new Dictionary<Run, Run[]>();
+            var newfields = new Dictionary<Run, Run[]>();
 
             int cursor = 0;
             do
@@ -238,34 +243,46 @@ namespace Guardian.Documents.MailMerge
                         {
                             // Fixed jewish calander --lior 
                             //  build new Run containing a SimpleField
-                            Paragraph p = null;
+                            Paragraph paragraphDate = null;
                             if (runprop != null && runprop.Parent != null && runprop.Parent.Parent != null)
-                                p = runprop.Parent.Parent as Paragraph;
+                                paragraphDate = runprop.Parent.Parent as Paragraph;
 
                             else if (innerRuns.Any() && (innerRuns[0] != null && innerRuns[0].Parent != null))
-                                p = runprop.Parent.Parent as Paragraph;
+                                paragraphDate = runprop.Parent.Parent as Paragraph;
 
-                            if (p != null)
+                            if (paragraphDate != null)
                             {
-                                var texts = p.Descendants<Text>();
-
-                                StringBuilder sb = new StringBuilder();
+                                var texts = paragraphDate.Descendants<Text>();
+                                // start: handle datetime number sticky to month l.g
                                 foreach (var text in texts)
                                 {
-
-                                    sb.Append(text.InnerText);
+                                    if (text == null)
+                                        continue;
+                                    
+                                        Run rWord = new Run();
+                                        var txtTemp = new Text(text.InnerText);
+                                        txtTemp.Space = SpaceProcessingModeValues.Preserve;
+                                        if (runprop != null)
+                                        {
+                                            rWord.AppendChild(runprop.CloneNode(true));
+                                        }
+                                        rWord.AppendChild<Text>(txtTemp);
+                                        newrun.AppendChild<Run>(rWord);
                                 }
-                                var text2 = new Text(sb.ToString());
-                                text2.Space = SpaceProcessingModeValues.Preserve;
-                                newrun.Append(text2);
+                                // end: handle datetime number sticky to month l.g
+                                //StringBuilder sb = new StringBuilder();
+                                //foreach (var text in texts)
+                                //{
+
+                                //    sb.Append(text.InnerText);
+                                //}
+                                //var text2 = new Text(sb.ToString());
+                                //text2.Space = SpaceProcessingModeValues.Preserve;
+                                //newrun.Append(text2);
                                 // must be after text set all properties 
                                 if (runprop != null)
                                 {
                                     var propCalder=runprop.CloneNode(true);
-                                    //Languages ilHe = new Languages();
-                                    //ilHe.Val = "he-IL";
-                                    //ilHe.Bidi = "he-IL";
-                                    //propCalder.AppendChild(ilHe);
                                     newrun.AppendChild(propCalder);
                                 }
                             }
@@ -419,19 +436,18 @@ namespace Guardian.Documents.MailMerge
                             r.Append(new TabChar());
                         }
                         // separte all words for handle  rtl (when english has than disable rtl)
-                        //var wordSpl=  tabtext.Split(new[] { " ",":" }, StringSplitOptions.None);
-                        //string[] parts = Regex.Split(originalString, @"(?<=[.,;])")
-                   //     string[] wordSpl = Regex.Split(tabtext, @"(?<=[\W+ \s])");
-                        string[] wordSpl = Regex.Split(tabtext, @"(?<=[\s+])");
+                        //  string[] wordSpl = Regex.Split(tabtext, @"(?<=[\s+])");
+                        string[] wordSpl = Regex.Split(tabtext, splitWhiteSpaceIncludeRegFormater);
+
                         foreach (var w in wordSpl)
                         {
                             Run rWord = new Run();
-                            var txt2 = new Text(w); 
-                            txt2.Space = SpaceProcessingModeValues.Preserve;
+                            var txtTemp = new Text(w); 
+                            txtTemp.Space = SpaceProcessingModeValues.Preserve;
                             rWord.AppendChild(new RunProperties(rpr));
-                            rWord.AppendChild<Text>(txt2);
+                            rWord.AppendChild<Text>(txtTemp);
                             r.AppendChild<Run>(rWord);
-                            bool isHasEngChar = Regex.IsMatch(w, @"[A-Za-z]+");  //l.g
+                            bool isHasEngChar = Regex.IsMatch(w,isEngCharcter);// @"[A-Za-z]+");  //l.g
                             if (isHasEngChar && r.GetFirstChild<RunProperties>() != null)
                             {
                                 var rprLtr = rWord.GetFirstChild<RunProperties>();
@@ -461,8 +477,6 @@ namespace Guardian.Documents.MailMerge
                 }
             }
 
-
-
             var r = new Run();
 
             if (!string.IsNullOrEmpty(rpr))
@@ -473,7 +487,7 @@ namespace Guardian.Documents.MailMerge
             if (!string.IsNullOrEmpty(text))
             {
                 // l.g fixed ltr in latin language
-                bool isHasEngChar = Regex.IsMatch(text, @"[A-Za-z]+");  //l.g
+                bool isHasEngChar = Regex.IsMatch(text,isEngCharcter);//, @"[A-Za-z]+");  //l.g
                 if (isHasEngChar && r.GetFirstChild<RunProperties>() != null)
                 {
                     var rprLtr = r.GetFirstChild<RunProperties>();
