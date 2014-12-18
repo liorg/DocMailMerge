@@ -10,7 +10,7 @@ using DocumentFormat.OpenXml;
 using System.IO;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Validation;
- 
+
 namespace Guardian.Documents.MailMerge
 {
     /*       *** thank's god ***         */
@@ -58,7 +58,7 @@ namespace Guardian.Documents.MailMerge
         //                                                                                # Retrieves text to display after field data (Named Capture Group -> PostText)
         //                            [\s]*(\\f[\s]+[""]?(?<PostText>[^\\]*){1})?",
         //                        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
- 
+
         // http://stackoverflow.com/questions/12206667/i-need-to-modify-a-word-mergefield-regular-expression
         // lior gr fixed because the old not support {MERGEFIELD  "xx"}  only { MERGEFIELD  xx} on field  exmple { MERGEFIELD  "MitlonenFullName" }
         private static readonly Regex instructionRegEx = new Regex(
@@ -68,12 +68,12 @@ namespace Guardian.Documents.MailMerge
                                                                                         # Retrieves text to display after field data (Named Capture Group -> PostText)
                                               [\s]*(\\f[\s]+[""]?(?<PostText>[^\\]*){1})?",
                             RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture | RegexOptions.IgnoreCase | RegexOptions.IgnorePatternWhitespace | RegexOptions.Singleline);
- 
+
         private static readonly string splitWhiteSpaceIncludeRegFormater = @"(?<=[\s+])";
- 
- 
+
+
         private static readonly string isEngCharcter = @"[A-Za-z]+";
- 
+
         /// <summary>
         /// Change code from code project that's only have array of fields(lior G)
         /// </summary>
@@ -82,16 +82,16 @@ namespace Guardian.Documents.MailMerge
         /// <param name="values"></param>
         internal static void GetWordReportPart(MemoryStream stream, WordprocessingDocument docx, Dictionary<string, string> values, string defaultHebDocBody = "David")
         {
- 
- 
+
+
             //  2010/08/01: addition
             ConvertFieldCodes(docx.MainDocumentPart.Document);
- 
+
             // next : process all remaining fields in the main document //1.0.0.6
             FillWordFieldsInElement(values, docx.MainDocumentPart.Document, defaultHebDocBody);
- 
+
             docx.MainDocumentPart.Document.Save();  // save main document back in package
- 
+
             //// process header(s)
             foreach (HeaderPart hpart in docx.MainDocumentPart.HeaderParts)
             {
@@ -101,7 +101,7 @@ namespace Guardian.Documents.MailMerge
                 hpart.Header.Save();    // save header back in package
             }
             // process footer(s)
-           foreach (FooterPart fpart in docx.MainDocumentPart.FooterParts)
+            foreach (FooterPart fpart in docx.MainDocumentPart.FooterParts)
             {
                 //  2010/08/01: addition
                 ConvertFieldCodes(fpart.Footer);
@@ -109,7 +109,7 @@ namespace Guardian.Documents.MailMerge
                 fpart.Footer.Save();    // save footer back in package
             }
         }
- 
+
         /// <summary>
         /// Fills all the <see cref="SimpleFields"/> that are found in a given <see cref="OpenXmlElement"/>.
         /// </summary>
@@ -120,17 +120,17 @@ namespace Guardian.Documents.MailMerge
             string[] switches;
             string[] options;
             string[] formattedText;
- 
+
             Dictionary<SimpleField, string[]> emptyfields = new Dictionary<SimpleField, string[]>();
- 
+
             // First pass: fill in data, but do not delete empty fields.  Deletions silently break the loop.
             var list = element.Descendants<SimpleField>().ToArray();
             List<Paragraph> paragrphsChanged = new List<Paragraph>();
             foreach (var field in list)
             {
- 
+
                 var parent = field.Parent;
- 
+
                 string fieldname = GetFieldNameWithOptions(field, out switches, out options);
                 if (!string.IsNullOrEmpty(fieldname))
                 {
@@ -139,21 +139,21 @@ namespace Guardian.Documents.MailMerge
                     {
                         //TODO: Fixed Before Merge Field
                         formattedText = ApplyFormatting(options[0], values[fieldname], options[1], options[2]);
- 
+
                         // Prepend any text specified to appear before the data in the MergeField
                         if (!string.IsNullOrEmpty(options[1]))
                         {
- 
+
                             // not working l.g
                             // field.Parent.InsertBeforeSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
                             // start:replace with that
                             var text = formattedText[1];
                             Run runToInsert = GetRunElementForTextRtlHandle(text, field, defaultHebDoc); // GetRunElementForText(text, field, true);
                             var runprop = runToInsert.GetFirstChild<RunProperties>();
- 
+
                             if (runprop != null && runprop.RightToLeftText != null)
                                 runprop.RightToLeftText.Val = false;
- 
+
                             parent.InsertBeforeSelf<Run>(runToInsert); //field.Parent.InsertBeforeSelf<Run>(runToInsert);
                             // end: replace l.g
                         }
@@ -164,13 +164,13 @@ namespace Guardian.Documents.MailMerge
                         }
                         // replace mergefield with text
                         parent.ReplaceChild<SimpleField>(GetRunElementForTextRtlHandle(formattedText[0], field, defaultHebDoc), field);// field.Parent.ReplaceChild<SimpleField>(GetRunElementForTextRtlHandle(formattedText[0], field), field);
- 
+
                         var paragraphItemChange = GetFirstParent<Paragraph>(parent);
                         if (paragraphItemChange != null && !paragrphsChanged.Contains(paragraphItemChange))
                         {
                             paragrphsChanged.Add(paragraphItemChange);
                         }
- 
+
                     }
                     else
                     {
@@ -188,14 +188,14 @@ namespace Guardian.Documents.MailMerge
                 ExecuteSwitches(kvp.Key, kvp.Value);
                 // 1.0.0.5 l.g
                 RemoveParentParagrph(kvp.Key, paragrphsChanged, tableCellRemoveParagraphs);
- 
+
                 kvp.Key.Remove();
- 
+
             }
             //fixed 1.0.0.8
             DelCellHasNoPargraphs(tableCellRemoveParagraphs);
         }
- 
+
         /// <summary>
         /// Since MS Word 2010 the SimpleField element is not longer used. It has been replaced by a combination of
         /// Run elements and a FieldCode element. This method will convert the new format to the old SimpleField-compliant
@@ -214,20 +214,20 @@ namespace Guardian.Documents.MailMerge
             {
                 datesFormat.Add(format);
             }
- 
+
             var newfields = new Dictionary<Run, Run[]>();
- 
+
             int cursor = 0;
             do
             {
                 Run run = runs[cursor];
- 
+
                 if (run.HasChildren && run.Descendants<FieldChar>().Count() > 0
                     && (run.Descendants<FieldChar>().First().FieldCharType & FieldCharValues.Begin) == FieldCharValues.Begin)
                 {
                     List<Run> innerRuns = new List<Run>();
                     innerRuns.Add(run);
- 
+
                     //  loop until we find the 'end' FieldChar
                     bool found = false;
                     string instruction = null;
@@ -236,7 +236,7 @@ namespace Guardian.Documents.MailMerge
                     {
                         cursor++;
                         run = runs[cursor];
- 
+
                         innerRuns.Add(run);
                         if (run.HasChildren && run.Descendants<FieldCode>().Count() > 0)
                             instruction += run.GetFirstChild<FieldCode>().Text;
@@ -251,17 +251,17 @@ namespace Guardian.Documents.MailMerge
                         if (runprop != null && runprop.RightToLeftText != null)
                         {
                             //  runprop.RightToLeftText.Val = false;
- 
+
                         }
                     } while (found == false && cursor < runs.Length);
- 
+
                     //  something went wrong : found Begin but no End. Throw exception
                     if (!found)
                         throw new Exception("Found a Begin FieldChar but no End !");
- 
+
                     if (!string.IsNullOrEmpty(instruction))
                     {
- 
+
                         Run newrun = new Run();
                         // Jewish Calander Handle when is dynamic update
                         // lior grossman
@@ -282,10 +282,10 @@ namespace Guardian.Documents.MailMerge
                             Paragraph paragraphDate = null;
                             if (runprop != null && runprop.Parent != null && runprop.Parent.Parent != null)
                                 paragraphDate = runprop.Parent.Parent as Paragraph;
- 
+
                             else if (innerRuns.Any() && (innerRuns[0] != null && innerRuns[0].Parent != null))
                                 paragraphDate = runprop.Parent.Parent as Paragraph;
- 
+
                             if (paragraphDate != null)
                             {
                                 var texts = paragraphDate.Descendants<Text>();
@@ -294,7 +294,7 @@ namespace Guardian.Documents.MailMerge
                                 {
                                     if (text == null)
                                         continue;
- 
+
                                     Run rWord = new Run();
                                     var txtTemp = new Text(text.InnerText);
                                     txtTemp.Space = SpaceProcessingModeValues.Preserve;
@@ -322,7 +322,7 @@ namespace Guardian.Documents.MailMerge
                                 simplefield.Instruction = instruction;
                                 newrun.AppendChild(simplefield);
                             }
- 
+
                         } //end is field date fromat
                         else
                         {
@@ -339,7 +339,7 @@ namespace Guardian.Documents.MailMerge
                 }
                 cursor++;
             } while (cursor < runs.Length);
- 
+
             //  replace all FieldCodes by old-style SimpleFields
             foreach (KeyValuePair<Run, Run[]> kvp in newfields)
             {
@@ -348,7 +348,7 @@ namespace Guardian.Documents.MailMerge
                     kvp.Value[i].Remove();
             }
         }
- 
+
         [Obsolete("replace with new GetRunElementForText ", false)]
         static Run GetRunElementForTextOld(string text, SimpleField placeHolder)
         {
@@ -361,13 +361,13 @@ namespace Guardian.Documents.MailMerge
                     break;  // break at first
                 }
             }
- 
+
             Run r = new Run();
             if (!string.IsNullOrEmpty(rpr))
             {
                 r.Append(new RunProperties(rpr));
             }
- 
+
             if (!string.IsNullOrEmpty(text))
             {
                 // first process line breaks
@@ -379,9 +379,9 @@ namespace Guardian.Documents.MailMerge
                     {
                         r.Append(new Break());
                     }
- 
+
                     first = false;
- 
+
                     // then process tabs
                     bool firsttab = true;
                     string[] tabsplit = s.Split(new string[] { "\t" }, StringSplitOptions.None);
@@ -391,16 +391,16 @@ namespace Guardian.Documents.MailMerge
                         {
                             r.Append(new TabChar());
                         }
- 
+
                         r.Append(new Text(tabtext));
                         firsttab = false;
                     }
                 }
             }
- 
+
             return r;
         }
- 
+
         /// <summary>
         /// Returns a <see cref="Run"/>-openxml element for the given text.
         /// Specific about this run-element is that it can describe multiple-line and tabbed-text.
@@ -418,19 +418,19 @@ namespace Guardian.Documents.MailMerge
                 if (xdoc.Root != null)
                 {
                     var xrpr = xdoc.Root.Elements().FirstOrDefault(x => x.Name.LocalName == "rPr");
- 
+
                     if (xrpr != null)
                         rpr = xrpr.ToString();
                 }
             }
- 
+
             var r = new Run();
- 
+
             if (!string.IsNullOrEmpty(rpr))
             {
                 r.AppendChild(new RunProperties(rpr));
             }
- 
+
             if (!string.IsNullOrEmpty(text))
             {
                 var rprLtr = r.GetFirstChild<RunProperties>();
@@ -438,12 +438,12 @@ namespace Guardian.Documents.MailMerge
                 bool isHasEngChar = Regex.IsMatch(text, isEngCharcter);//, @"[A-Za-z]+");  //l.g
                 if (isHasEngChar && r.GetFirstChild<RunProperties>() != null)
                 {
- 
+
                     if (rprLtr.RightToLeftText == null)
                         rprLtr.RightToLeftText = new RightToLeftText();
                     rprLtr.RightToLeftText.Val = false;
                 }
- 
+
                 //   var rRunProperties = r.GetFirstChild<RunProperties>();
                 string[] split = text.Split(new string[] { "\n" }, StringSplitOptions.None);
                 bool first = true;
@@ -453,9 +453,9 @@ namespace Guardian.Documents.MailMerge
                     {
                         r.Append(new Break());
                     }
- 
+
                     first = false;
- 
+
                     // then process tabs
                     bool firsttab = true;
                     string[] tabsplit = s.Split(new[] { "\t" }, StringSplitOptions.None);
@@ -472,11 +472,11 @@ namespace Guardian.Documents.MailMerge
                     }
                 }
             }
- 
+
             return r;
         }
- 
- 
+
+
         /// <summary>
         /// Applies any formatting specified to the pre and post text as
         /// well as to fieldValue.
@@ -490,7 +490,7 @@ namespace Guardian.Documents.MailMerge
         static string[] ApplyFormatting(string format, string fieldValue, string preText, string postText)
         {
             string[] valuesToReturn = new string[3];
- 
+
             if ("UPPER".Equals(format))
             {
                 // Convert everything to uppercase.
@@ -516,7 +516,7 @@ namespace Guardian.Documents.MailMerge
                         valuesToReturn[0] = valuesToReturn[0] + fieldValue.Substring(1).ToLower(CultureInfo.CurrentCulture);
                     }
                 }
- 
+
                 if (!string.IsNullOrEmpty(preText))
                 {
                     valuesToReturn[1] = preText.Substring(0, 1).ToUpper(CultureInfo.CurrentCulture);
@@ -525,7 +525,7 @@ namespace Guardian.Documents.MailMerge
                         valuesToReturn[1] = valuesToReturn[1] + preText.Substring(1).ToLower(CultureInfo.CurrentCulture);
                     }
                 }
- 
+
                 if (!string.IsNullOrEmpty(postText))
                 {
                     valuesToReturn[2] = postText.Substring(0, 1).ToUpper(CultureInfo.CurrentCulture);
@@ -548,10 +548,10 @@ namespace Guardian.Documents.MailMerge
                 valuesToReturn[1] = preText;
                 valuesToReturn[2] = postText;
             }
- 
+
             return valuesToReturn;
         }
- 
+
         /// <summary>
         /// Title-cases a string, capitalizing the first letter of every word.
         /// </summary>
@@ -561,7 +561,7 @@ namespace Guardian.Documents.MailMerge
         {
             return ToTitleCaseHelper(toConvert, string.Empty);
         }
- 
+
         /// <summary>
         /// Title-cases a string, capitalizing the first letter of every word.
         /// </summary>
@@ -583,7 +583,7 @@ namespace Guardian.Documents.MailMerge
             {
                 int indexOfFirstSpace = toConvert.IndexOf(' ');
                 string firstWord, restOfString;
- 
+
                 // Check to see if we're on the last word or if there are more.
                 if (indexOfFirstSpace != -1)
                 {
@@ -595,22 +595,22 @@ namespace Guardian.Documents.MailMerge
                     firstWord = toConvert.Substring(0);
                     restOfString = string.Empty;
                 }
- 
+
                 System.Text.StringBuilder sb = new StringBuilder();
- 
+
                 sb.Append(alreadyConverted);
                 sb.Append(" ");
                 sb.Append(firstWord.Substring(0, 1).ToUpper(CultureInfo.CurrentCulture));
- 
+
                 if (firstWord.Length > 1)
                 {
                     sb.Append(firstWord.Substring(1).ToLower(CultureInfo.CurrentCulture));
                 }
- 
+
                 return ToTitleCaseHelper(restOfString, sb.ToString());
             }
         }
- 
+
         /// <summary>
         /// Returns the fieldname and switches from the given mergefield-instruction
         /// Note: the switches are always returned lowercase !
@@ -630,7 +630,7 @@ namespace Guardian.Documents.MailMerge
             options = new string[3];
             string fieldname = string.Empty;
             string instruction = a.Value;
- 
+
             if (!string.IsNullOrEmpty(instruction))
             {
                 Match m = instructionRegEx.Match(instruction);
@@ -645,12 +645,12 @@ namespace Guardian.Documents.MailMerge
                     {
                         var removeDoubleQuotesExpr = @"[^\\""]*(\\""[^\\""]*)*";
                         var removeDoubleQuotes = new Regex(removeDoubleQuotesExpr);
- 
+
                         Match matchSyntax = removeDoubleQuotes.Match(options[1]);
- 
+
                         if (matchSyntax.Success)
                             options[1] = matchSyntax.Groups[0] != null && String.IsNullOrEmpty(matchSyntax.Groups[0].Value) ? options[1] : matchSyntax.Groups[0].Value;
- 
+
                     }
                     if (pos > 0)
                     {
@@ -660,10 +660,10 @@ namespace Guardian.Documents.MailMerge
                     }
                 }
             }
- 
+
             return fieldname;
         }
- 
+
         /// <summary>
         /// Executes the field switches on a given element.
         /// The possible switches are:
@@ -681,7 +681,7 @@ namespace Guardian.Documents.MailMerge
             {
                 return;
             }
- 
+
             // check switches (switches are always lowercase)
             if (switches.Contains("dp"))
             {
@@ -708,7 +708,7 @@ namespace Guardian.Documents.MailMerge
                 }
             }
         }
- 
+
         /// <summary>
         /// Returns the first parent of a given <see cref="OpenXmlElement"/> that corresponds
         /// to the given type.
@@ -734,7 +734,7 @@ namespace Guardian.Documents.MailMerge
                 return GetFirstParent<T>(element.Parent);
             }
         }
- 
+
         /// <summary>
         /// Creates a paragraph to house text that should appear before or after the MergeField.
         /// </summary>
@@ -748,7 +748,7 @@ namespace Guardian.Documents.MailMerge
             paragraphToInsert.Append(runToInsert);
             return paragraphToInsert;
         }
- 
+
         /// <summary>
         /// separte all words for handle  rtl (when english has than disable rtl) l.g
         /// Returns a <see cref="Run"/>-openxml element for the given text.
@@ -768,7 +768,7 @@ namespace Guardian.Documents.MailMerge
                 if (xdoc.Root != null)
                 {
                     var xrpr = xdoc.Root.Elements().FirstOrDefault(x => x.Name.LocalName == "rPr");
- 
+
                     if (xrpr != null)
                         rpr = xrpr.ToString();
                 }
@@ -778,8 +778,8 @@ namespace Guardian.Documents.MailMerge
             {
                 r.AppendChild(new RunProperties(rpr));
             }
- 
- 
+
+
             if (!string.IsNullOrEmpty(text))
             {
                 string[] split = text.Split(new string[] { "\n" }, StringSplitOptions.None);
@@ -790,9 +790,9 @@ namespace Guardian.Documents.MailMerge
                     {
                         r.Append(new Break());
                     }
- 
+
                     first = false;
- 
+
                     // then process tabs
                     bool firsttab = true;
                     string[] tabsplit = s.Split(new[] { "\t" }, StringSplitOptions.None);
@@ -805,7 +805,7 @@ namespace Guardian.Documents.MailMerge
                         // separte all words for handle  rtl (when english has than disable rtl)
                         //  string[] wordSpl = Regex.Split(tabtext, @"(?<=[\s+])");
                         string[] wordSpl = Regex.Split(tabtext, splitWhiteSpaceIncludeRegFormater);
- 
+
                         foreach (var w in wordSpl)
                         {
                             Run rWord = new Run();
@@ -819,11 +819,11 @@ namespace Guardian.Documents.MailMerge
                             //1.0.0.7 remove rtl (false) on english chracters
                             //if (isHasEngChar && r.GetFirstChild<RunProperties>() != null)
                             //{
- 
+
                             //    //if (rprLtr.RightToLeftText == null)
                             //    //    rprLtr.RightToLeftText = new RightToLeftText();
                             //    //rprLtr.RightToLeftText.Val = false;
- 
+
                             //}
                             //else\
                             if (!isHasEngChar)
@@ -838,7 +838,7 @@ namespace Guardian.Documents.MailMerge
                                     //  rprLtr.RunFonts.Hint = FontTypeHintValues.EastAsia;
                                     rprLtr.RunFonts.Ascii = defaultHebFont;
                                 }
- 
+
                             }
                         }
                     }
@@ -854,7 +854,7 @@ namespace Guardian.Documents.MailMerge
             lang.Val = "he-IL";
             return lang;
         }
- 
+
         /// <summary>
         /// Remove Paragraph from mail merge field for prevent line to be empty  l.g
         /// </summary>
@@ -870,7 +870,7 @@ namespace Guardian.Documents.MailMerge
                     return;
                 if (paragraph.Parent != null) //fixed 1.0.0.5
                 {
-                  
+
                     //fixed 1.0.0.7 when has paragraph contain text do not remove him
                     if ((!paragraph.Descendants<Text>().Any()) || (!paragraph.Descendants<Text>().Where(t => t != null && !String.IsNullOrWhiteSpace(t.Text)).Any()))
                     {
@@ -878,15 +878,15 @@ namespace Guardian.Documents.MailMerge
                         SetCellHasPargraphRemove(paragraph, tableCellRemoveParagraphs);
                         paragraph.Remove();
                     }
- 
+
                 }
             }
- 
+
         }
         //fixed 1.0.0.8
         static void SetCellHasPargraphRemove(Paragraph paragraph, ICollection<TableCell> tableCellRemoveParagraphs)
         {
-            if (paragraph.Parent !=null && paragraph.Parent is TableCell)
+            if (paragraph.Parent != null && paragraph.Parent is TableCell)
             {
                 if (!tableCellRemoveParagraphs.Contains((TableCell)paragraph.Parent))
                     tableCellRemoveParagraphs.Add((TableCell)paragraph.Parent);
@@ -895,7 +895,7 @@ namespace Guardian.Documents.MailMerge
         //fixed 1.0.0.8
         static void DelCellHasNoPargraphs(IEnumerable<TableCell> tableCellRemoveParagraphs)
         {
-             foreach (var cell in tableCellRemoveParagraphs)
+            foreach (var cell in tableCellRemoveParagraphs)
             {
                 if (!cell.Descendants<Paragraph>().Any())
                 {
@@ -904,7 +904,8 @@ namespace Guardian.Documents.MailMerge
                         if (cell.Parent is TableRow)
                         {
                             //when no has data in all tablerow remove row 1.0.0.8.1
-                            var isHasMoreCells = cell.Parent.Descendants<TableCell>().Count()>1;
+                            // more then one because the current is cell will be remove
+                            var isHasMoreCells = cell.Parent.Descendants<TableCell>().Count() > 1;
                             if (!isHasMoreCells)
                                 if (cell.Parent.Parent != null)
                                 {
@@ -918,4 +919,4 @@ namespace Guardian.Documents.MailMerge
         }
     }
 }
- 
+
