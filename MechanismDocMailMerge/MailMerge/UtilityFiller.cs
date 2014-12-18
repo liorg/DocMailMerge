@@ -15,8 +15,13 @@ namespace Guardian.Documents.MailMerge
 {
     /*       *** thank's god ***         */
     /*
-     *********************** current ver 1.0.0.7  ******************************
+     *********************** current ver 1.0.0.8.1  ******************************
      */
+    // version 1.0.0.8.1
+    //1. when no has data in all tablerow remove row
+    // version 1.0.0.8
+    //1. on function RemoveParentParagrph , fill to array tableCells any pargraph that's remove and has parent tableCell
+    //2. on function FillWordFieldsInElement ,remove tablecell no has any paragraph
     // version 1.0.0.7
     // 1. when has paragraph contain text do not remove him (on body) RemoveParentParagrph
     // 2. remove rtl=false on  GetRunElementForTextRtlHandle
@@ -96,7 +101,7 @@ namespace Guardian.Documents.MailMerge
                 hpart.Header.Save();    // save header back in package
             }
             // process footer(s)
-            foreach (FooterPart fpart in docx.MainDocumentPart.FooterParts)
+           foreach (FooterPart fpart in docx.MainDocumentPart.FooterParts)
             {
                 //  2010/08/01: addition
                 ConvertFieldCodes(fpart.Footer);
@@ -174,17 +179,21 @@ namespace Guardian.Documents.MailMerge
                     }
                 }
             }
+            //fix 1.0.0.8
+            List<TableCell> tableCellRemoveParagraphs = new List<TableCell>();
             // second pass : clear empty fields
             foreach (KeyValuePair<SimpleField, string[]> kvp in emptyfields)
             {
                 // if field is unknown or empty: execute switches and remove it from document !
                 ExecuteSwitches(kvp.Key, kvp.Value);
-                //  l.g
-                RemoveParentParagrph(kvp.Key, paragrphsChanged);
+                // 1.0.0.5 l.g
+                RemoveParentParagrph(kvp.Key, paragrphsChanged, tableCellRemoveParagraphs);
  
                 kvp.Key.Remove();
  
             }
+            //fixed 1.0.0.8
+            DelCellHasNoPargraphs(tableCellRemoveParagraphs);
         }
  
         /// <summary>
@@ -208,7 +217,7 @@ namespace Guardian.Documents.MailMerge
  
             var newfields = new Dictionary<Run, Run[]>();
  
-           int cursor = 0;
+            int cursor = 0;
             do
             {
                 Run run = runs[cursor];
@@ -691,7 +700,7 @@ namespace Guardian.Documents.MailMerge
                 }
             }
             else if (switches.Contains("dt"))
-           {
+            {
                 Table table = GetFirstParent<Table>(element);
                 if (table != null)
                 {
@@ -850,7 +859,7 @@ namespace Guardian.Documents.MailMerge
         /// Remove Paragraph from mail merge field for prevent line to be empty  l.g
         /// </summary>
         /// <param name="element">merge mail field</param>
-        static void RemoveParentParagrph(OpenXmlElement element, IEnumerable<Paragraph> paragraphChange)
+        static void RemoveParentParagrph(OpenXmlElement element, IEnumerable<Paragraph> paragraphChange, ICollection<TableCell> tableCellRemoveParagraphs)
         {
             if (element == null)
                 return;
@@ -861,9 +870,12 @@ namespace Guardian.Documents.MailMerge
                     return;
                 if (paragraph.Parent != null) //fixed 1.0.0.5
                 {
+                  
                     //fixed 1.0.0.7 when has paragraph contain text do not remove him
                     if ((!paragraph.Descendants<Text>().Any()) || (!paragraph.Descendants<Text>().Where(t => t != null && !String.IsNullOrWhiteSpace(t.Text)).Any()))
                     {
+                        //fixed 1.0.0.8
+                        SetCellHasPargraphRemove(paragraph, tableCellRemoveParagraphs);
                         paragraph.Remove();
                     }
  
@@ -871,10 +883,39 @@ namespace Guardian.Documents.MailMerge
             }
  
         }
- 
+        //fixed 1.0.0.8
+        static void SetCellHasPargraphRemove(Paragraph paragraph, ICollection<TableCell> tableCellRemoveParagraphs)
+        {
+            if (paragraph.Parent !=null && paragraph.Parent is TableCell)
+            {
+                if (!tableCellRemoveParagraphs.Contains((TableCell)paragraph.Parent))
+                    tableCellRemoveParagraphs.Add((TableCell)paragraph.Parent);
+            }
+        }
+        //fixed 1.0.0.8
+        static void DelCellHasNoPargraphs(IEnumerable<TableCell> tableCellRemoveParagraphs)
+        {
+             foreach (var cell in tableCellRemoveParagraphs)
+            {
+                if (!cell.Descendants<Paragraph>().Any())
+                {
+                    if (cell.Parent != null)
+                    {
+                        if (cell.Parent is TableRow)
+                        {
+                            //when no has data in all tablerow remove row 1.0.0.8.1
+                            var isHasMoreCells = cell.Parent.Descendants<TableCell>().Count()>1;
+                            if (!isHasMoreCells)
+                                if (cell.Parent.Parent != null)
+                                {
+                                    cell.Parent.Remove();
+                                }
+                        }
+                    }
+                    cell.Remove();
+                }
+            }
+        }
     }
 }
  
- 
- 
-
