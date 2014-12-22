@@ -20,10 +20,10 @@ namespace WinTestMerge
         {
             InitializeComponent();
         }
- 
-         const string SourceUri="http://mvmentcrmqa:8080//Doctemplates/output/merge";
-         const string TargetFolder = @"\\mvmentcrmqa\c$\inetpub\wwwroot\WEBMentaService\Doctemplates\output\disconnect";
-         const string SourceFolder = @"\\mvmentcrmqa\Doctemplates\output\merge";
+
+        const string SourceUri = "http://crm11mantad:8080//Doctemplates/output/merge";
+         const string TargetFolder = @"\\crm11mantad\c$\inetpub\wwwroot\WEBMentaService\Doctemplates\output\disconnect";
+         const string SourceFolder = @"\\crm11mantad\Doctemplates\output\merge";
  
  
         private void Form1_Load(object sender, EventArgs e)
