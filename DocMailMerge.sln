@@ -30,6 +30,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WcfService", "server\WcfSer
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WcfServiceMailMergeLibrary", "server\WcfServiceMailMergeLibrary\WcfServiceMailMergeLibrary.csproj", "{15B3E0D2-6217-493A-A690-158C497F5318}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{539A0F84-7748-425D-B207-D539A5CAF9FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinTestMerge", "UI\WinTestMerge\WinTestMerge.csproj", "{42341732-2501-404C-AA62-F10332B77EC8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,11 +56,16 @@ Global
 		{15B3E0D2-6217-493A-A690-158C497F5318}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{15B3E0D2-6217-493A-A690-158C497F5318}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{15B3E0D2-6217-493A-A690-158C497F5318}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42341732-2501-404C-AA62-F10332B77EC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42341732-2501-404C-AA62-F10332B77EC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42341732-2501-404C-AA62-F10332B77EC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42341732-2501-404C-AA62-F10332B77EC8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{02DFE1F0-B27F-4F1B-A3E5-E0ED7D1B49E6} = {B6B3BE8A-F2F7-4F4F-9E3D-58FCF1323D15}
+		{42341732-2501-404C-AA62-F10332B77EC8} = {539A0F84-7748-425D-B207-D539A5CAF9FF}
 	EndGlobalSection
 EndGlobal
