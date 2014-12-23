@@ -20,6 +20,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml;
 using System.Globalization;
+using System.IO.Packaging;
 
 
 
@@ -28,7 +29,7 @@ namespace Guardian.Documents.MailMerge
     /// <summary>
     /// Manipulate Open XML SDK 2.5 
     /// </summary>
-    public class MailMergeOpenXml 
+    public class MailMergeOpenXml
     {
 
 
@@ -52,7 +53,118 @@ namespace Guardian.Documents.MailMerge
             DocPropertiey targetPath = targetDoc.Save(dataAfterModified);
             return targetPath;
         }
-         
+
+        public void ChangeToDocx(string urlPath)
+        {
+            WebClient client = new WebClient();
+            string pathTarget = @"c:\\temp\todcx13.docx";
+            client.Credentials = System.Net.CredentialCache.DefaultCredentials;
+            byte[] buffer = client.DownloadData(urlPath);
+            using (MemoryStream ms = new MemoryStream())
+            {
+                ms.Write(buffer, 0, buffer.Length);
+                if (File.Exists(pathTarget))
+                {
+                    File.Delete(pathTarget);
+                }
+                //  ProcessDocumentXml(null, ms);
+                ProcessDocumentXml(ms);
+                //using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
+                //{
+                //var docPart = doc.MainDocumentPart;
+
+                ////  doc.MainDocumentPart.Document.Save();
+                //var vbaPart = docPart.VbaProjectPart;
+                //if (vbaPart != null)
+                //{
+                //    // Delete the vbaProject part and then save the document.
+                //    docPart.DeletePart(vbaPart);
+                //    docPart.Document.Save();
+                //} 
+
+                //  doc.ChangeDocumentType(WordprocessingDocumentType.Document);
+
+                using (FileStream stream = new FileStream(pathTarget, FileMode.OpenOrCreate))
+                {
+                    using (BinaryWriter writer = new BinaryWriter(stream))
+                    {
+                        writer.Write(ms.ToArray());
+                    }
+                }
+            }
+        }
+        private static Uri GetRelativeUri(string currentFile)
+        {
+            string relPath = currentFile.Substring(currentFile
+            .IndexOf('\\')).Replace('\\', '/').Replace(' ', '_');
+            return new Uri(RemoveAccents(relPath), UriKind.Relative);
+        }
+        private static void CopyStream(Stream source, Stream target)
+        {
+            const int bufSize = 16384;
+            byte[] buf = new byte[bufSize];
+            int bytesRead = 0;
+            while ((bytesRead = source.Read(buf, 0, bufSize)) > 0)
+                target.Write(buf, 0, bytesRead);
+        }
+
+        private static string RemoveAccents(string input)
+        {
+            string normalized = input.Normalize(NormalizationForm.FormKD);
+            Encoding removal = Encoding.GetEncoding(Encoding.ASCII.CodePage, new EncoderReplacementFallback(""), new DecoderReplacementFallback(""));
+            byte[] bytes = removal.GetBytes(normalized);
+            return Encoding.ASCII.GetString(bytes);
+        }
+
+        private static void ProcessDocumentXml(Stream documentStream)
+        {
+            // Open the document in the stream and replace the custom XML part
+            using (System.IO.Packaging.Package packageFile = System.IO.Packaging.Package.Open(documentStream, FileMode.Open, FileAccess.ReadWrite))
+            {
+                System.IO.Packaging.PackagePart packagePart = null;
+                // Find part containing the correct namespace
+                foreach (var part in packageFile.GetParts())
+                {
+                    if (part.ContentType.Equals("application/vnd.ms-word.document.macroEnabled.main+xml", StringComparison.OrdinalIgnoreCase))
+                    {
+                        packagePart = part;
+                        break;
+                    }
+                }
+                if (packagePart != null)
+                {
+                    using (MemoryStream source = new MemoryStream())
+                    {
+                        CopyStream(packagePart.GetStream(), source);
+
+                        var saveRelationBeforeDelPart = new List<PackageRelationship>();
+                        foreach (var item in packagePart.GetRelationships())
+                        {
+                            saveRelationBeforeDelPart.Add(item);
+                        }
+                        // Delete the existing XML part
+                        Uri uriData = packagePart.Uri;
+
+                        if (packageFile.PartExists(uriData))
+                            packageFile.DeletePart(uriData);
+
+                        // Load the custom XML data
+                        var pkgprtData = packageFile.CreatePart(uriData, "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml", System.IO.Packaging.CompressionOption.SuperFast);
+
+                        source.Position = 0;
+                        CopyStream(source, pkgprtData.GetStream(FileMode.Create));
+
+                        foreach (var r in saveRelationBeforeDelPart)
+                        {
+                            pkgprtData.CreateRelationship(r.TargetUri, TargetMode.Internal, r.RelationshipType, r.Id);
+                        }
+                    }
+                }
+            }
+        }
+
+
+
         /// <summary>
         /// Disconnect Data Source from Mail Merge and fill merge field with current query fro doc and also data source from doc
         /// </summary>

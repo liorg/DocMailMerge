@@ -155,8 +155,8 @@ namespace WinTestMerge
  
         private void button1_Click(object sender, EventArgs e)
         {
-            //var mailMergeOpenXml = new MailMergeOpenXml(Log);
-            //mailMergeOpenXml.Cc("http://mvmentcrmqa:8080//Doctemplates/output/disconnect/2.DOCM");
+            var mailMergeOpenXml = new MailMergeOpenXml(Log);
+           mailMergeOpenXml.ChangeToDocx("http://crm11mantad:8080//Doctemplates/output/ta.DOCM");
  
         }
     }
