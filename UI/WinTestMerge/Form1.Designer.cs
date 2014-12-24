@@ -50,7 +50,7 @@
             this.btnDisconnect.ForeColor = System.Drawing.Color.Maroon;
             this.btnDisconnect.Location = new System.Drawing.Point(12, 364);
             this.btnDisconnect.Name = "btnDisconnect";
-            this.btnDisconnect.Size = new System.Drawing.Size(107, 83);
+            this.btnDisconnect.Size = new System.Drawing.Size(107, 45);
             this.btnDisconnect.TabIndex = 3;
             this.btnDisconnect.Text = "disconnect";
             this.btnDisconnect.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
@@ -151,9 +151,9 @@
             // 
             // button1
             // 
-            this.button1.Location = new System.Drawing.Point(452, 379);
+            this.button1.Location = new System.Drawing.Point(140, 364);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(76, 45);
+            this.button1.Size = new System.Drawing.Size(98, 45);
             this.button1.TabIndex = 11;
             this.button1.Text = "docm to docx";
             this.button1.UseVisualStyleBackColor = true;

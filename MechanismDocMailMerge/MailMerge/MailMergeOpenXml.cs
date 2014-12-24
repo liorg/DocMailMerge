@@ -53,52 +53,56 @@ namespace Guardian.Documents.MailMerge
             DocPropertiey targetPath = targetDoc.Save(dataAfterModified);
             return targetPath;
         }
-
-        public void ChangeToDocx(string urlPath)
+        public void ChangeToDocx(ISourceDoc sourceDoc, ITargetDoc targetDoc)
         {
-            WebClient client = new WebClient();
-            string pathTarget = @"c:\\temp\todcx13.docx";
-            client.Credentials = System.Net.CredentialCache.DefaultCredentials;
-            byte[] buffer = client.DownloadData(urlPath);
+            var buffer = sourceDoc.GetBuffer();
             using (MemoryStream ms = new MemoryStream())
             {
                 ms.Write(buffer, 0, buffer.Length);
-                if (File.Exists(pathTarget))
-                {
-                    File.Delete(pathTarget);
-                }
-                //  ProcessDocumentXml(null, ms);
-                ProcessDocumentXml(ms);
-                //using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
-                //{
-                //var docPart = doc.MainDocumentPart;
-
-                ////  doc.MainDocumentPart.Document.Save();
-                //var vbaPart = docPart.VbaProjectPart;
-                //if (vbaPart != null)
-                //{
-                //    // Delete the vbaProject part and then save the document.
-                //    docPart.DeletePart(vbaPart);
-                //    docPart.Document.Save();
-                //} 
-
-                //  doc.ChangeDocumentType(WordprocessingDocumentType.Document);
-
-                using (FileStream stream = new FileStream(pathTarget, FileMode.OpenOrCreate))
-                {
-                    using (BinaryWriter writer = new BinaryWriter(stream))
-                    {
-                        writer.Write(ms.ToArray());
-                    }
-                }
+                ChangeDocmToDocxUsingPackage(ms);
+                DocPropertiey targetPath = targetDoc.Save(ms.ToArray());
             }
         }
-        private static Uri GetRelativeUri(string currentFile)
-        {
-            string relPath = currentFile.Substring(currentFile
-            .IndexOf('\\')).Replace('\\', '/').Replace(' ', '_');
-            return new Uri(RemoveAccents(relPath), UriKind.Relative);
-        }
+        //public void ChangeToDocx(string source,string target)
+        //{
+        //    WebClient client = new WebClient();
+        //    //string pathTarget = @"c:\\temp\todcx13.docx";
+        //    client.Credentials = System.Net.CredentialCache.DefaultCredentials;
+        //    byte[] buffer = client.DownloadData(source);
+        //    using (MemoryStream ms = new MemoryStream())
+        //    {
+        //        ms.Write(buffer, 0, buffer.Length);
+        //        if (File.Exists(target))
+        //        {
+        //            File.Delete(target);
+        //        }
+        //        //  ProcessDocumentXml(null, ms);
+        //        ProcessDocumentXml(ms);
+        //        //using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
+        //        //{
+        //        //var docPart = doc.MainDocumentPart;
+
+        //        ////  doc.MainDocumentPart.Document.Save();
+        //        //var vbaPart = docPart.VbaProjectPart;
+        //        //if (vbaPart != null)
+        //        //{
+        //        //    // Delete the vbaProject part and then save the document.
+        //        //    docPart.DeletePart(vbaPart);
+        //        //    docPart.Document.Save();
+        //        //} 
+
+        //        //  doc.ChangeDocumentType(WordprocessingDocumentType.Document);
+
+        //        using (FileStream stream = new FileStream(target, FileMode.OpenOrCreate))
+        //        {
+        //            using (BinaryWriter writer = new BinaryWriter(stream))
+        //            {
+        //                writer.Write(ms.ToArray());
+        //            }
+        //        }
+        //    }
+        //}
+        
         private static void CopyStream(Stream source, Stream target)
         {
             const int bufSize = 16384;
@@ -108,15 +112,7 @@ namespace Guardian.Documents.MailMerge
                 target.Write(buf, 0, bytesRead);
         }
 
-        private static string RemoveAccents(string input)
-        {
-            string normalized = input.Normalize(NormalizationForm.FormKD);
-            Encoding removal = Encoding.GetEncoding(Encoding.ASCII.CodePage, new EncoderReplacementFallback(""), new DecoderReplacementFallback(""));
-            byte[] bytes = removal.GetBytes(normalized);
-            return Encoding.ASCII.GetString(bytes);
-        }
-
-        private static void ProcessDocumentXml(Stream documentStream)
+        private static void ChangeDocmToDocxUsingPackage(Stream documentStream)
         {
             // Open the document in the stream and replace the custom XML part
             using (System.IO.Packaging.Package packageFile = System.IO.Packaging.Package.Open(documentStream, FileMode.Open, FileAccess.ReadWrite))
@@ -142,28 +138,26 @@ namespace Guardian.Documents.MailMerge
                         {
                             saveRelationBeforeDelPart.Add(item);
                         }
-                        // Delete the existing XML part
+                        
                         Uri uriData = packagePart.Uri;
-
+                        // Delete the existing XML part
                         if (packageFile.PartExists(uriData))
                             packageFile.DeletePart(uriData);
 
                         // Load the custom XML data
                         var pkgprtData = packageFile.CreatePart(uriData, "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml", System.IO.Packaging.CompressionOption.SuperFast);
 
-                        source.Position = 0;
+                        source.Position = 0;//reset position
                         CopyStream(source, pkgprtData.GetStream(FileMode.Create));
 
-                        foreach (var r in saveRelationBeforeDelPart)
+                        foreach (var copyRel in saveRelationBeforeDelPart)
                         {
-                            pkgprtData.CreateRelationship(r.TargetUri, TargetMode.Internal, r.RelationshipType, r.Id);
+                            pkgprtData.CreateRelationship(copyRel.TargetUri, copyRel.TargetMode, copyRel.RelationshipType, copyRel.Id);
                         }
                     }
                 }
             }
         }
-
-
 
         /// <summary>
         /// Disconnect Data Source from Mail Merge and fill merge field with current query fro doc and also data source from doc

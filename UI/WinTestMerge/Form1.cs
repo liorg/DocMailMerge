@@ -28,11 +28,11 @@ namespace WinTestMerge
  
         private void Form1_Load(object sender, EventArgs e)
         {
-            Refresh();
+            RefreshFolderUi();
  
         }
  
-        void Refresh()
+        void RefreshFolderUi()
         {
             lstFiles.Items.Clear();
             lstFiles.Dock = DockStyle.Fill;
@@ -123,12 +123,12 @@ namespace WinTestMerge
  
         private void btnRefresh_Click(object sender, EventArgs e)
         {
-            Refresh();
+            RefreshFolderUi();
         }
  
         private void btnRefresh_Click_1(object sender, EventArgs e)
         {
-            Refresh();
+            RefreshFolderUi();
         }
  
         private void btnTarget_Click_1(object sender, EventArgs e)
@@ -156,7 +156,12 @@ namespace WinTestMerge
         private void button1_Click(object sender, EventArgs e)
         {
             var mailMergeOpenXml = new MailMergeOpenXml(Log);
-           mailMergeOpenXml.ChangeToDocx("http://crm11mantad:8080//Doctemplates/output/ta.DOCM");
+            var pathSource = "http://crm11mantad:8080//Doctemplates/output/ta.DOCM";
+            var pathTarget = @"c:\\temp\todcx14.docx";
+            var source = new SourceWebDoc(pathSource);
+            var target = new TargetLocalDoc(pathTarget);
+           //mailMergeOpenXml.ChangeToDocx("http://crm11mantad:8080//Doctemplates/output/ta.DOCM",@"c:\\temp\todcx13.docx");
+            mailMergeOpenXml.ChangeToDocx(source, target);
  
         }
     }
