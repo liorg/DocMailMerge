@@ -53,6 +53,7 @@ namespace Guardian.Documents.MailMerge
             DocPropertiey targetPath = targetDoc.Save(dataAfterModified);
             return targetPath;
         }
+
         public void ChangeToDocx(ISourceDoc sourceDoc, ITargetDoc targetDoc)
         {
             var buffer = sourceDoc.GetBuffer();
@@ -103,7 +104,7 @@ namespace Guardian.Documents.MailMerge
         //    }
         //}
         
-        private static void CopyStream(Stream source, Stream target)
+        private  void CopyStream(Stream source, Stream target)
         {
             const int bufSize = 16384;
             byte[] buf = new byte[bufSize];
@@ -112,7 +113,7 @@ namespace Guardian.Documents.MailMerge
                 target.Write(buf, 0, bytesRead);
         }
 
-        private static void ChangeDocmToDocxUsingPackage(Stream documentStream)
+        private  void ChangeDocmToDocxUsingPackage(Stream documentStream)
         {
             // Open the document in the stream and replace the custom XML part
             using (System.IO.Packaging.Package packageFile = System.IO.Packaging.Package.Open(documentStream, FileMode.Open, FileAccess.ReadWrite))
