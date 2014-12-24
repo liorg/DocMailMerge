@@ -39,9 +39,13 @@
             this.btnTarget = new System.Windows.Forms.Button();
             this.btnOpen = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
+            this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.lstDocxs = new System.Windows.Forms.ListView();
+            this.btnDocx = new System.Windows.Forms.Button();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
+            this.tabPage3.SuspendLayout();
             this.SuspendLayout();
             // 
             // btnDisconnect
@@ -53,7 +57,6 @@
             this.btnDisconnect.Size = new System.Drawing.Size(107, 45);
             this.btnDisconnect.TabIndex = 3;
             this.btnDisconnect.Text = "disconnect";
-            this.btnDisconnect.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
             this.btnDisconnect.UseVisualStyleBackColor = true;
             this.btnDisconnect.Click += new System.EventHandler(this.btnDisconnect_Click);
             // 
@@ -61,6 +64,7 @@
             // 
             this.tabControl1.Controls.Add(this.tabPage1);
             this.tabControl1.Controls.Add(this.tabPage2);
+            this.tabControl1.Controls.Add(this.tabPage3);
             this.tabControl1.Location = new System.Drawing.Point(12, 39);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
@@ -121,19 +125,20 @@
             // 
             // btnRefresh
             // 
-            this.btnRefresh.Location = new System.Drawing.Point(333, 10);
+            this.btnRefresh.BackColor = System.Drawing.SystemColors.ActiveCaption;
+            this.btnRefresh.Location = new System.Drawing.Point(436, 10);
             this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(134, 23);
+            this.btnRefresh.Size = new System.Drawing.Size(79, 23);
             this.btnRefresh.TabIndex = 10;
             this.btnRefresh.Text = "refresh ";
-            this.btnRefresh.UseVisualStyleBackColor = true;
+            this.btnRefresh.UseVisualStyleBackColor = false;
             this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click_1);
             // 
             // btnTarget
             // 
             this.btnTarget.Location = new System.Drawing.Point(152, 10);
             this.btnTarget.Name = "btnTarget";
-            this.btnTarget.Size = new System.Drawing.Size(175, 23);
+            this.btnTarget.Size = new System.Drawing.Size(131, 23);
             this.btnTarget.TabIndex = 9;
             this.btnTarget.Text = "open target disconnect";
             this.btnTarget.UseVisualStyleBackColor = true;
@@ -153,17 +158,48 @@
             // 
             this.button1.Location = new System.Drawing.Point(140, 364);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(98, 45);
+            this.button1.Size = new System.Drawing.Size(100, 45);
             this.button1.TabIndex = 11;
             this.button1.Text = "docm to docx";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // tabPage3
+            // 
+            this.tabPage3.Controls.Add(this.lstDocxs);
+            this.tabPage3.Location = new System.Drawing.Point(4, 22);
+            this.tabPage3.Name = "tabPage3";
+            this.tabPage3.Size = new System.Drawing.Size(541, 293);
+            this.tabPage3.TabIndex = 2;
+            this.tabPage3.Text = "Docx Folder";
+            this.tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // lstDocxs
+            // 
+            this.lstDocxs.Location = new System.Drawing.Point(4, 6);
+            this.lstDocxs.MultiSelect = false;
+            this.lstDocxs.Name = "lstDocxs";
+            this.lstDocxs.Size = new System.Drawing.Size(532, 281);
+            this.lstDocxs.TabIndex = 5;
+            this.lstDocxs.UseCompatibleStateImageBehavior = false;
+            this.lstDocxs.View = System.Windows.Forms.View.List;
+            // 
+            // btnDocx
+            // 
+            this.btnDocx.Location = new System.Drawing.Point(289, 10);
+            this.btnDocx.Name = "btnDocx";
+            this.btnDocx.Size = new System.Drawing.Size(141, 23);
+            this.btnDocx.TabIndex = 12;
+            this.btnDocx.Text = "open docx";
+            this.btnDocx.UseVisualStyleBackColor = true;
+            this.btnDocx.Click += new System.EventHandler(this.btnDocx_Click);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(573, 600);
+            this.Controls.Add(this.btnDocx);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.btnTarget);
@@ -177,6 +213,7 @@
             this.tabControl1.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
             this.tabPage2.ResumeLayout(false);
+            this.tabPage3.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -194,6 +231,9 @@
         private System.Windows.Forms.Button btnTarget;
         private System.Windows.Forms.Button btnOpen;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.TabPage tabPage3;
+        private System.Windows.Forms.ListView lstDocxs;
+        private System.Windows.Forms.Button btnDocx;
     }
 }
  

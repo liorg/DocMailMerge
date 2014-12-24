@@ -68,57 +68,40 @@ namespace Guardian.Documents.MailMerge
             return targetPath;
         }
 
-        public void ChangeToDocx(ISourceDoc sourceDoc, ITargetDoc targetDoc)
+        public void ChangeDocmToDocx(ISourceDoc sourceDoc, ITargetDoc targetDoc)
         {
             var buffer = sourceDoc.GetBuffer();
             using (MemoryStream ms = new MemoryStream())
             {
                 ms.Write(buffer, 0, buffer.Length);
                 ChangeDocmToDocxUsingPackage(ms);
+                RemoveMacroOpenXml(ms);
                 DocPropertiey targetPath = targetDoc.Save(ms.ToArray());
             }
         }
-        //public void ChangeToDocx(string source,string target)
-        //{
-        //    WebClient client = new WebClient();
-        //    //string pathTarget = @"c:\\temp\todcx13.docx";
-        //    client.Credentials = System.Net.CredentialCache.DefaultCredentials;
-        //    byte[] buffer = client.DownloadData(source);
-        //    using (MemoryStream ms = new MemoryStream())
-        //    {
-        //        ms.Write(buffer, 0, buffer.Length);
-        //        if (File.Exists(target))
-        //        {
-        //            File.Delete(target);
-        //        }
-        //        //  ProcessDocumentXml(null, ms);
-        //        ProcessDocumentXml(ms);
-        //        //using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
-        //        //{
-        //        //var docPart = doc.MainDocumentPart;
 
-        //        ////  doc.MainDocumentPart.Document.Save();
-        //        //var vbaPart = docPart.VbaProjectPart;
-        //        //if (vbaPart != null)
-        //        //{
-        //        //    // Delete the vbaProject part and then save the document.
-        //        //    docPart.DeletePart(vbaPart);
-        //        //    docPart.Document.Save();
-        //        //} 
+        /// <summary>
+        /// for safe remove vb code from word office
+        /// </summary>
+        /// <param name="ms"></param>
+        public void RemoveMacroOpenXml(MemoryStream ms)
+        {
+            using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
+            {
+                var docPart = doc.MainDocumentPart;
+                var vbaPart = docPart.VbaProjectPart;
+                if (vbaPart != null)
+                {
+                    //    // Delete the vbaProject part and then save the document.
+                    docPart.DeletePart(vbaPart);
+                    docPart.Document.Save();
+                    //  No work instead ChangeDocmToDocxUsingPackage will change format
+                    // doc.ChangeDocumentType(WordprocessingDocumentType.Document);        
+                }
+            }
+        }
 
-        //        //  doc.ChangeDocumentType(WordprocessingDocumentType.Document);
-
-        //        using (FileStream stream = new FileStream(target, FileMode.OpenOrCreate))
-        //        {
-        //            using (BinaryWriter writer = new BinaryWriter(stream))
-        //            {
-        //                writer.Write(ms.ToArray());
-        //            }
-        //        }
-        //    }
-        //}
-        
-        private  void CopyStream(Stream source, Stream target)
+        private void CopyStream(Stream source, Stream target)
         {
             const int bufSize = 16384;
             byte[] buf = new byte[bufSize];
@@ -127,7 +110,7 @@ namespace Guardian.Documents.MailMerge
                 target.Write(buf, 0, bytesRead);
         }
 
-        private  void ChangeDocmToDocxUsingPackage(Stream documentStream)
+        private void ChangeDocmToDocxUsingPackage(Stream documentStream)
         {
             // Open the document in the stream and replace the custom XML part
             using (System.IO.Packaging.Package packageFile = System.IO.Packaging.Package.Open(documentStream, FileMode.Open, FileAccess.ReadWrite))
@@ -153,7 +136,7 @@ namespace Guardian.Documents.MailMerge
                         {
                             saveRelationBeforeDelPart.Add(item);
                         }
-                        
+
                         Uri uriData = packagePart.Uri;
                         // Delete the existing XML part
                         if (packageFile.PartExists(uriData))
@@ -212,7 +195,6 @@ namespace Guardian.Documents.MailMerge
             }
 
         }
-
 
         //http://www.legalcube.de/post/Word-OpenXML-Create-change-or-delete-watermarks.aspx
         bool FindAndRemoveWatermark(Run runWatermark)
@@ -487,143 +469,6 @@ namespace Guardian.Documents.MailMerge
             }
         }
 
-        [Obsolete("replace with FillDataToDocCP , this code will be removed", false)]
-        byte[] FillDataToDoc(byte[] buffer, bool isRemoveWatermark)
-        {
-
-            DataTable dt = new DataTable();
-            try
-            {
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    ms.Write(buffer, 0, buffer.Length);
-                    using (WordprocessingDocument doc = WordprocessingDocument.Open(ms, true))
-                    {
-
-                        var query = GetQueryFromDoc(doc);
-                        var connStr = GetConnStrFromDoc(doc);
-                        using (System.Data.SqlClient.SqlDataAdapter adapter = new System.Data.SqlClient.SqlDataAdapter(query, connStr))
-                        {
-                            adapter.Fill(dt);
-                        }
-
-                        if (dt.Rows.Count > 0)
-                        {
-                            DataRow dataRow = dt.Rows[0];
-                            // Remove datasource from settings part and save this part in the memory stream
-                            doc.MainDocumentPart.DocumentSettingsPart.Settings.RemoveAllChildren
-                                <DocumentFormat.OpenXml.Wordprocessing.MailMerge>();
-                            doc.MainDocumentPart.DocumentSettingsPart.Settings.Save();
-
-
-                            if (isRemoveWatermark)
-                            {
-                                foreach (var header in doc.MainDocumentPart.HeaderParts)
-                                {
-                                    //Remove
-                                    if (header.Header.Descendants<Paragraph>() != null)
-                                    {
-                                        var isFound = false;
-                                        foreach (var para in header.Header.Descendants<Paragraph>())
-                                        {
-                                            foreach (Run r in para.Descendants<Run>())
-                                            {
-                                                isFound = FindAndRemoveWatermark(r);
-                                                if (isFound)
-                                                    break;
-                                            }
-                                            if (isFound)
-                                                header.Header.Save(header);
-                                        }
-                                    }
-                                }
-                            }
-                            Body body = doc.MainDocumentPart.Document.Body;
-
-                            var list = body.Descendants<FieldChar>().Where(c => c.FieldCharType == FieldCharValues.Begin).Select(c => c.Parent as Run);
-
-                            // Process complex MergeFields 
-                            foreach (Run run in list)
-                            {
-                                Run current = run;
-                                string column = "";
-                                string format = "";
-
-                                while (!(current.GetFirstChild<FieldChar>() != null &&
-                                    current.GetFirstChild<FieldChar>().FieldCharType == FieldCharValues.End))
-                                {
-                                    if (current.GetFirstChild<FieldCode>() != null)
-                                    {
-                                        string[] columnParts = current.GetFirstChild<FieldCode>()
-                                            .Text
-                                            .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-                                        if (columnParts.Length > 1)
-                                        {
-                                            if (columnParts[0] != "MERGEFIELD")
-                                                break;
-                                            column = columnParts[1];
-                                            if (columnParts.Length > 3)
-                                                format = columnParts[3].Replace('"', ' ');
-                                        }
-                                    }
-                                    Text text = current.GetFirstChild<Text>();
-
-                                    if (dt.Columns.Contains(column) && text != null)
-                                    {
-                                        if (dataRow[column] is DateTime)
-                                            text.Text = ((DateTime)dataRow[column]).ToString(format);
-                                        else
-                                            text.Text = dataRow[column].ToString();
-                                    }
-                                    current = current.NextSibling<Run>();
-                                }
-                            }
-
-                            // Process Simple MergeField
-                            foreach (SimpleField field in body.Descendants<SimpleField>())
-                            {
-                                string column = "";
-                                string format = "";
-                                if (field.Instruction.HasValue)
-                                {
-                                    string[] columnParts = field.Instruction.Value
-                                           .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                                    if (columnParts.Length > 1)
-                                    {
-                                        column = columnParts[1];
-                                        if (columnParts.Length > 3)
-                                            format = columnParts[3].Replace('"', ' ');
-                                    }
-
-                                    IEnumerable<Text> texts = field.Descendants<Text>();
-                                    Text text = texts.FirstOrDefault();
-
-                                    if (dt.Columns.Contains(column) && text != null)
-                                    {
-                                        if (dataRow[column] is DateTime)
-                                            text.Text = ((DateTime)dataRow[column]).ToString(format);
-                                        else
-                                            text.Text = dataRow[column].ToString();
-                                    }
-                                }
-                            }
-
-                        }
-                        doc.MainDocumentPart.Document.Save();
-                        return ms.ToArray();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log(ex.Message, EventLogEntryType.Error);
-                Log(ex.ToString(), EventLogEntryType.Information);
-                Log(ex.StackTrace, EventLogEntryType.Error);
-                throw ex;
-            }
-
-        }
 
     }
 }
