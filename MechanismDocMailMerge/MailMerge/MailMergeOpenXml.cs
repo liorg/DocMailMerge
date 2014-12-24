@@ -29,7 +29,7 @@ namespace Guardian.Documents.MailMerge
     /// <summary>
     /// Manipulate Open XML SDK 2.5 
     /// </summary>
-    public class MailMergeOpenXml
+    public class MailMergeOpenXml : IMailMergeOpenXml
     {
 
 
