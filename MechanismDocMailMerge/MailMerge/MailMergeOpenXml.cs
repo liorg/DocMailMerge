@@ -54,6 +54,20 @@ namespace Guardian.Documents.MailMerge
             return targetPath;
         }
 
+        /// <summary>
+        /// Disconnect Data Source from Mail Merge and fill merge field with current query fro doc and also data source from doc
+        /// </summary>
+        /// <param name="sourceDoc"></param>
+        /// <param name="targetDoc"></param>
+        /// <returns></returns>
+        public DocPropertiey FillData(ISourceDoc sourceDoc, ITargetDoc targetDoc, string connectionString = null)
+        {
+            var dataAfterModified = sourceDoc.GetBuffer();
+            var dataAfterChange = FillDataToDocCP(dataAfterModified, true, connectionString);
+            DocPropertiey targetPath = targetDoc.Save(dataAfterChange);
+            return targetPath;
+        }
+
         public void ChangeToDocx(ISourceDoc sourceDoc, ITargetDoc targetDoc)
         {
             var buffer = sourceDoc.GetBuffer();
@@ -158,20 +172,6 @@ namespace Guardian.Documents.MailMerge
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Disconnect Data Source from Mail Merge and fill merge field with current query fro doc and also data source from doc
-        /// </summary>
-        /// <param name="sourceDoc"></param>
-        /// <param name="targetDoc"></param>
-        /// <returns></returns>
-        public DocPropertiey FillData(ISourceDoc sourceDoc, ITargetDoc targetDoc, string connectionString = null)
-        {
-            var dataAfterModified = sourceDoc.GetBuffer();
-            var dataAfterChange = FillDataToDocCP(dataAfterModified, true, connectionString);
-            DocPropertiey targetPath = targetDoc.Save(dataAfterChange);
-            return targetPath;
         }
 
         byte[] FillDataToDocCP(byte[] buffer, bool isRemoveWatermark, string connectionString = null)
