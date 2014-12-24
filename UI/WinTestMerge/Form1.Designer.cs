@@ -87,7 +87,7 @@
             this.lstFiles.Location = new System.Drawing.Point(3, 6);
             this.lstFiles.MultiSelect = false;
             this.lstFiles.Name = "lstFiles";
-            this.lstFiles.Size = new System.Drawing.Size(532, 221);
+            this.lstFiles.Size = new System.Drawing.Size(532, 284);
             this.lstFiles.TabIndex = 3;
             this.lstFiles.UseCompatibleStateImageBehavior = false;
             this.lstFiles.View = System.Windows.Forms.View.List;
