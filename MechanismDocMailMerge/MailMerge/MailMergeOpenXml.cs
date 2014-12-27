@@ -68,6 +68,26 @@ namespace Guardian.Documents.MailMerge
             return targetPath;
         }
 
+        public DocPropertiey FillDataAndConvertDocx(ISourceDoc sourceDoc, ITargetDoc targetDoc, string connectionString = null)
+        {
+            var dataAfterModified = sourceDoc.GetBuffer();
+            var dataAfterChange = FillDataToDocCP(dataAfterModified, true, connectionString);
+            using (MemoryStream ms = new MemoryStream())
+            {
+                ms.Write(dataAfterChange, 0, dataAfterChange.Length);
+                ChangeDocmToDocxUsingPackage(ms);
+                RemoveMacroOpenXml(ms);
+                DocPropertiey targetPath = targetDoc.Save(ms.ToArray());
+                return targetPath;
+            }
+         
+        }
+
+        /// <summary>
+        /// Convert Docm To Docx (By package because ChangeDocumentType not working well)
+        /// </summary>
+        /// <param name="sourceDoc"></param>
+        /// <param name="targetDoc"></param>
         public void ChangeDocmToDocx(ISourceDoc sourceDoc, ITargetDoc targetDoc)
         {
             var buffer = sourceDoc.GetBuffer();
@@ -98,6 +118,22 @@ namespace Guardian.Documents.MailMerge
                     //  No work instead ChangeDocmToDocxUsingPackage will change format
                     // doc.ChangeDocumentType(WordprocessingDocumentType.Document);        
                 }
+                //var hasMacroAttachments  = doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.AttachedTemplate>().Count();
+                //var settingPart = doc.MainDocumentPart.DocumentSettingsPart;
+                // if (hasMacroAttachments > 0)
+                //{
+                //    foreach (var attachTemplate in doc.MainDocumentPart.DocumentSettingsPart.Settings.Elements<XOPEN.Wordprocessing.AttachedTemplate>())
+                //    {
+                //        var attachTemplateRelationship = settingPart.GetExternalRelationship(attachTemplate.Id);
+                //        if (attachTemplateRelationship != null)
+                //        {
+                //            settingPart.DeleteExternalRelationship(attachTemplateRelationship);
+
+                //        }
+                //    }
+                    
+                //}
+
             }
         }
 
@@ -110,6 +146,10 @@ namespace Guardian.Documents.MailMerge
                 target.Write(buf, 0, bytesRead);
         }
 
+        /// <summary>
+        ///By package because  ChangeDocumentType not working well
+        /// </summary>
+        /// <param name="documentStream"></param>
         private void ChangeDocmToDocxUsingPackage(Stream documentStream)
         {
             // Open the document in the stream and replace the custom XML part

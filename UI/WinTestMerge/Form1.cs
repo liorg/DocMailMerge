@@ -1,4 +1,5 @@
-﻿using Guardian.Documents.MailMerge;
+﻿using exportTemplate.DataModel;
+using Guardian.Documents.MailMerge;
 using Guardian.MailMerge.Implementation;
 using System;
 using System.Collections.Generic;
@@ -11,6 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Serialization;
 
 namespace WinTestMerge
 {
@@ -27,11 +29,18 @@ namespace WinTestMerge
         const string SourceFolder = @"\\crm11mantad\Doctemplates\output\merge";
         const string TargetDocxFolder = @"\\crm11mantad\c$\inetpub\wwwroot\WEBMentaService\Doctemplates\output\docx";
 
+        const string UdlPath=@"C:\Users\lior_g\Documents\GitHub\DocMailMerge\TemplatesWords\r.Udl";
+        const string DotMPath = @"C:\Users\lior_g\Documents\GitHub\DocMailMerge\TemplatesWords\CrmSecureRibbon.dotm";
+        const string ConnectionToChange = "Provider=SQLOLEDB.1;Integrated Security=SSPI;Persist Security Info=False;Initial Catalog=MANTA_MSCRM;Data Source=CRM11MANTAD"; // "Provider=SQLOLEDB.1;Integrated Security=SSPI;Persist Security Info=False;Initial Catalog=MANTA_MSCRM;Data Source=CRM11MANTAD";
+
+        Guid EntityId = Guid.Parse("6AE9E556-F701-E411-9414-00155D043341");
+
+        List<DocumentTemplate> _documentsTemplates = null;
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            RefreshFolderUi();
-
+            RefreshFolderUi(); 
+            LoadXml();
         }
 
         void RefreshFolderUi()
@@ -73,9 +82,32 @@ namespace WinTestMerge
                 ListViewItem item = new ListViewItem(fileName);
                 item.Tag = file;
                 item.Text = fileName;
-
                 lstDocxs.Items.Add(item);
             }
+        }
+        
+        void LoadXml()
+        {
+            var _pathDocsTemplates = @"C:\export\docsTemplates.xml";
+            XmlSerializer serializerDocsTypes = new XmlSerializer(typeof(List<DocumentTemplate>));
+
+            using (StreamReader reader = new StreamReader(_pathDocsTemplates))
+            {
+                _documentsTemplates = (List<DocumentTemplate>)serializerDocsTypes.Deserialize(reader);
+            }
+            // lstXml.Items = _documentsTemplates;
+            lstXml.Dock = DockStyle.Fill;
+
+            foreach (var docUri in _documentsTemplates)
+            {
+
+                // string fileName = Path.GetFileName(file);
+                ListViewItem item = new ListViewItem(docUri.Name);
+                item.Tag = docUri.Id;
+                item.Text = docUri.Name + docUri.Code;
+                lstXml.Items.Add(item);
+            }
+
         }
 
         private void btnDisconnect_Click(object sender, EventArgs e)
@@ -107,8 +139,6 @@ namespace WinTestMerge
 
             }
         }
-
-
         /// <summary>
         /// Open specified word document.
         /// </summary>
@@ -127,11 +157,8 @@ namespace WinTestMerge
             ListViewItem item = new ListViewItem(s);
             item.Tag = s;
             item.Text = s;
-
             lstLog.Items.Add(item);
         }
-
-
 
         private void btnRefresh_Click_1(object sender, EventArgs e)
         {
@@ -162,16 +189,6 @@ namespace WinTestMerge
 
         private void button1_Click(object sender, EventArgs e)
         {
-            // var mailMergeOpenXml = new MailMergeOpenXml(Log);
-            // var pathSource = "http://crm11mantad:8080//Doctemplates/output/ta.DOCM";
-            // var pathTarget = @"c:\\temp\todcx15.docx";
-            // var source = new SourceWebDoc(pathSource);
-            // var target = new TargetLocalDoc(pathTarget);
-            ////mailMergeOpenXml.ChangeToDocx("http://crm11mantad:8080//Doctemplates/output/ta.DOCM",@"c:\\temp\todcx13.docx");
-            // mailMergeOpenXml.ChangeDocmToDocx(source, target);
-
-
-
             if (lstTarget.SelectedItems != null && lstTarget.SelectedItems.Count > 0)
             {
                 String fileName = lstTarget.SelectedItems[0].Text.ToString();
@@ -200,8 +217,6 @@ namespace WinTestMerge
                 Log("done convert docm to docx", EventLogEntryType.Information);
 
             }
-
-             
         }
 
         private void btnDocx_Click(object sender, EventArgs e)
@@ -213,6 +228,83 @@ namespace WinTestMerge
             }
             else
                 MessageBox.Show("יש בחוק קובץ אחד בלבד DOCX");
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            if (lstXml.SelectedItems != null && lstXml.SelectedItems.Count > 0)
+            {
+                Log("selected item id is " + lstXml.SelectedItems[0].Tag.ToString(), EventLogEntryType.Information);
+          
+                var docTemp = _documentsTemplates.Where(s => s.Id == Guid.Parse(lstXml.SelectedItems[0].Tag.ToString())).Select(ss =>new { SQL= ss.Sql,URL=ss.SourceSp} ).FirstOrDefault();
+               // MessageBox.Show(docTemp.SQL);
+                if (docTemp != null)
+                {
+                    var sql = docTemp.SQL.Replace("{0}", EntityId.ToString());
+
+                    string fileName = EntityId.ToString()+"_"+Path.GetFileName(docTemp.URL);
+                    var customProperties = new Dictionary<string, string>();
+                    customProperties.Add("server", "");
+                    customProperties.Add("entityid", EntityId.ToString());
+                    customProperties.Add("tempfolder", "c:\\temp\r.udl");
+
+                    var pathTarget =  Path.Combine( SourceFolder, fileName);
+                    Log("pathTarget=" + pathTarget, EventLogEntryType.Information);
+
+                    if (File.Exists(pathTarget))
+                    {
+                        Log("pathTarget is deleted" + pathTarget, EventLogEntryType.Information);
+                        File.Delete(pathTarget);
+                    }
+
+                   
+                    var pathSource = docTemp.URL;
+                    Log("pathSource=" + pathSource, EventLogEntryType.Information);
+
+                    var mailMergeOpenXml = new MailMergeOpenXml(Log);
+
+                    var source = new SourceWebDoc(pathSource);
+                    var target = new TargetLocalDoc(pathTarget);
+
+                    var result = mailMergeOpenXml.Merge(ConnectionToChange, sql, source, target, UdlPath, DotMPath, customProperties);
+                    Log("done change merge setting =" + result.Drl, EventLogEntryType.Information);
+
+                }
+            }
+            else
+                MessageBox.Show("יש בחוק קובץ אחד בלבד XML");
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (lstFiles.SelectedItems != null && lstFiles.SelectedItems.Count > 0)
+            {
+                String fileName = lstFiles.SelectedItems[0].Text.ToString();//
+                var targetFileName = Path.ChangeExtension(fileName, "docx");
+
+                var pathTarget = TargetFolder + @"\" + targetFileName;
+                Log("pathTarget=" + pathTarget, EventLogEntryType.Information);
+
+                var pathSource = SourceUri + "/" + fileName;
+                Log("pathSource=" + pathSource, EventLogEntryType.Information);
+
+
+                if (File.Exists(pathTarget))
+                {
+                    Log("pathTarget is deleted" + pathTarget, EventLogEntryType.Information);
+                    File.Delete(pathTarget);
+                }
+
+                var mailMergeOpenXml = new MailMergeOpenXml(Log);
+
+
+                var source = new SourceWebDoc(pathSource);
+                var target = new TargetLocalDoc(pathTarget);
+
+                mailMergeOpenXml.FillDataAndConvertDocx(source, target);
+                Log("done Fill Data And Convert To Docx", EventLogEntryType.Information);
+
+            }
         }
     }
 }

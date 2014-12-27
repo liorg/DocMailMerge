@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfDocumentTemplate xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <DocumentTemplate>
+    <Id>b749148d-6be6-e311-0000-005056a814c8</Id>
+    <Name>test22</Name>
+    <SourceSp>http://x:8080/Doctemplates/test2.docx</SourceSp>
+    <Sql><![CDATA[select 'a' as businessunit , 'aaaazzzzzz' as a, '{0}' as emailA]]></Sql>
+    <DocType>f75ca174-f2d5-e311-93fd-005056a80000</DocType>
+  </DocumentTemplate>
+  
+</ArrayOfDocumentTemplate>
