@@ -15,8 +15,10 @@ namespace Guardian.Documents.MailMerge
 {
     /*       *** thank's god ***         */
     /*
-     *********************** current ver 1.0.0.8.2  ******************************
+     *********************** current ver 1.0.0.8.3  ******************************
      */
+    //version 1.0.0.8.3
+    //1. fixed after
     // version 1.0.0.8.2
     // 1. header fixed problem on table
     // version 1.0.0.8.1
@@ -104,7 +106,7 @@ namespace Guardian.Documents.MailMerge
             }
             // process footer(s)
             foreach (FooterPart fpart in docx.MainDocumentPart.FooterParts)
-            {
+           {
                 //  2010/08/01: addition
                 ConvertFieldCodes(fpart.Footer);
                 FillWordFieldsInElement(values, fpart.Footer);
@@ -113,7 +115,7 @@ namespace Guardian.Documents.MailMerge
         }
  
         /// <summary>
-       /// Fills all the <see cref="SimpleFields"/> that are found in a given <see cref="OpenXmlElement"/>.
+        /// Fills all the <see cref="SimpleFields"/> that are found in a given <see cref="OpenXmlElement"/>.
         /// </summary>
         /// <param name="values">The values to insert; keys should match the placeholder names, values are the data to insert.</param>
         /// <param name="element">The document element taht will contain the new values.</param>
@@ -159,11 +161,22 @@ namespace Guardian.Documents.MailMerge
                             parent.InsertBeforeSelf<Run>(runToInsert); //field.Parent.InsertBeforeSelf<Run>(runToInsert);
                             // end: replace l.g
                         }
-                        // Append any text specified to appear after the data in the MergeField
+                        // Append any text specified to appear after the data in the MergeField 
+                        //start: 1.0.0.8.3
                         if (!string.IsNullOrEmpty(options[2]))
                         {
-                            parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));// field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
+                            var text = formattedText[2];
+                            Run runToInsert = GetRunElementForTextRtlHandle(text, field, defaultHebDoc);
+                            var runprop = runToInsert.GetFirstChild<RunProperties>();
+ 
+                            if (runprop != null && runprop.RightToLeftText != null)
+                                runprop.RightToLeftText.Val = false;
+ 
+                            parent.InsertAfterSelf<Run>(runToInsert);
+                            //remove code  1.0.0.8.3
+                            //// parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));// field.Parent.InsertAfterSelf<Paragraph>(GetPreOrPostParagraphToInsert(formattedText[2], field));
                         }
+                        //end: 1.0.0.8.3
                         // replace mergefield with text
                         parent.ReplaceChild<SimpleField>(GetRunElementForTextRtlHandle(formattedText[0], field, defaultHebDoc), field);// field.Parent.ReplaceChild<SimpleField>(GetRunElementForTextRtlHandle(formattedText[0], field), field);
  
@@ -611,7 +624,7 @@ namespace Guardian.Documents.MailMerge
  
                 return ToTitleCaseHelper(restOfString, sb.ToString());
             }
-        }
+       }
  
         /// <summary>
         /// Returns the fieldname and switches from the given mergefield-instruction
@@ -641,7 +654,7 @@ namespace Guardian.Documents.MailMerge
                     fieldname = m.Groups["name"].ToString().Trim();
                     options[0] = m.Groups["Format"].Value.Trim();
                     options[1] = m.Groups["PreText"].Value.Trim(); //becuase fixed we remove double quetes l.g
-                    options[2] = m.Groups["PostText"].Value.Trim();
+                    options[2] = m.Groups["PostText"].Value;//.Trim();1.0.0.8.3
                     int pos = fieldname.IndexOf('#');
                     if (!String.IsNullOrEmpty(options[1]))
                     {
@@ -654,6 +667,19 @@ namespace Guardian.Documents.MailMerge
                             options[1] = matchSyntax.Groups[0] != null && String.IsNullOrEmpty(matchSyntax.Groups[0].Value) ? options[1] : matchSyntax.Groups[0].Value;
  
                     }
+                    //start 1.0.0.8.3
+                    if (!String.IsNullOrEmpty(options[2]))
+                    {
+                        var removeDoubleQuotesExpr = @"[^\\""]*(\\""[^\\""]*)*";
+                        var removeDoubleQuotes = new Regex(removeDoubleQuotesExpr);
+ 
+                        Match matchSyntax = removeDoubleQuotes.Match(options[2]);
+ 
+                        if (matchSyntax.Success)
+                            options[2] = matchSyntax.Groups[0] != null && String.IsNullOrEmpty(matchSyntax.Groups[0].Value) ? options[2] : matchSyntax.Groups[0].Value;
+ 
+                    }
+                    //end 1.0.0.8.3
                     if (pos > 0)
                     {
                         // Process the switches, correct the fieldname.
@@ -723,7 +749,7 @@ namespace Guardian.Documents.MailMerge
         static T GetFirstParent<T>(OpenXmlElement element)
            where T : OpenXmlElement
         {
-            if (element.Parent == null)
+           if (element.Parent == null)
             {
                 return null;
             }
@@ -769,7 +795,7 @@ namespace Guardian.Documents.MailMerge
                 var xdoc = XDocument.Parse((placeHolder.Parent).OuterXml.Replace(placeHolder.OuterXml, string.Empty));
                 if (xdoc.Root != null)
                 {
-                    var xrpr = xdoc.Root.Elements().FirstOrDefault(x => x.Name.LocalName == "rPr");
+                   var xrpr = xdoc.Root.Elements().FirstOrDefault(x => x.Name.LocalName == "rPr");
  
                     if (xrpr != null)
                         rpr = xrpr.ToString();
@@ -788,7 +814,7 @@ namespace Guardian.Documents.MailMerge
                 bool first = true;
                 foreach (string s in split)
                 {
-                   if (!first)
+                    if (!first)
                     {
                         r.Append(new Break());
                     }
@@ -938,4 +964,6 @@ namespace Guardian.Documents.MailMerge
         }
     }
 }
+ 
+ 
 
