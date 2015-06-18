@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Qualibase.Uniliver.Schedulers.ImportExcel.Helpers
+namespace ImportExcel.Helpers
 {
     public class SpreedsheetHelper
     {
